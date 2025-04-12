@@ -1,0 +1,63 @@
+10.9.21.40
+
+master1
+root
+B0ucha45@PF3
+update & upgrade OK
+
+10.9.21.41
+
+worker1
+root
+B0ucha45@PF3
+
+archi k8s & k3s
+https://www.simform.com/blog/kubernetes-architecture/
+
+------
+Install & config  (Master)
+
+https://docs.k3s.io/quick-start
+
+Version K3S 1.17
+
+CLI
+kubectl get nodes - show status
+
+
+root@master1:~# cat /var/lib/rancher/k3s/server/node-token
+K1073176509b02fd3c7fcc6dc3e3565c5b2408619d0467cc0a32513836a7c875e54::server:5ffc4155118f7c7789267bec91a72ce4
+
+token
+
+label worker 
+kubectl label node worker1 node-role.kubernetes.io/worker=true
+
+
+---
+root@master1:~# kubectl get nodes
+NAME      STATUS   ROLES                  AGE     VERSION
+master1   Ready    control-plane,master   10m     v1.32.3+k3s1
+worker1   Ready    worker                 3m42s   v1.32.3+k3s1
+root@master1:~# kubectl apply -f https://k8s.io/examples/application/deployment.yaml
+deployment.apps/nginx-deployment created
+root@master1:~# kubectl get deployment
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+nginx-deployment   2/2     2            2           14s
+root@master1:~# kubectl get pods
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-647677fc66-5cfln   1/1     Running   0          23s
+nginx-deployment-647677fc66-bx95j   1/1     Running   0          23s
+root@master1:~# kubectl get svc
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.43.0.1    <none>        443/TCP   16m
+root@master1:~# kubectl get rs
+NAME                          DESIRED   CURRENT   READY   AGE
+nginx-deployment-647677fc66   2         2         2       5m49s
+root@master1:~# kubectl get rc
+No resources found in default namespace.
+root@master1:~#
+---
+Install config (worker)
+
+curl -sfL https://get.k3s.io | K3S_URL=https://10.9.21.40:6443 K3S_TOKEN=K1073176509b02fd3c7fcc6dc3e3565c5b2408619d0467cc0a32513836a7c875e54::server:5ffc4155118f7c7789267bec91a72ce4 sh -

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment-taz1
+  labels:
+    app: nginx
+    app.kubernetes.io/name: nginx
+    app.kubernetes.io/component: webserver
+    app.kubernetes.io/managed-by: db-saas
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21
+        ports:
+        - containerPort: 80
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  labels:
+    app: nginx
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: nginx
+  type: LoadBalancer
