@@ -125,6 +125,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, c.Handler(r)))
 }
 
+// coucou
 // getKubernetesClient creates a Kubernetes client from kubeconfig
 func getKubernetesClient() (*kubernetes.Clientset, error) {
 	// First try the kubeconfig file in the current directory
