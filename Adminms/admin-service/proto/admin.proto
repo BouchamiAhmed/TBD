@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package admin.v1;
+
+option go_package = "admin-service/pkg/pb";
+
+import "google/protobuf/timestamp.proto";
+
+service AdminService {
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc CreateDatabase(CreateDatabaseRequest) returns (CreateDatabaseResponse);
+  rpc GetUserDatabases(GetUserDatabasesRequest) returns (GetUserDatabasesResponse);
+  rpc DeleteDatabase(DeleteDatabaseRequest) returns (DeleteDatabaseResponse);
+  rpc GetAllNamespaces(GetAllNamespacesRequest) returns (GetAllNamespacesResponse);
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  User user = 1;
+  string token = 2;
+}
+
+message RegisterRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+  string first_name = 4;
+  string last_name = 5;
+}
+
+message RegisterResponse {
+  User user = 1;
+  string token = 2;
+}
+
+message User {
+  int32 id = 1;
+  string username = 2;
+  string email = 3;
+  string first_name = 4;
+  string last_name = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message CreateDatabaseRequest {
+  string name = 1;
+  string username = 2;
+  string password = 3;
+  string type = 4;
+  int32 user_id = 5;
+}
+
+message CreateDatabaseResponse {
+  string name = 1;
+  string host = 2;
+  string port = 3;
+  string username = 4;
+  string type = 5;
+  string status = 6;
+  string message = 7;
+  string namespace = 8;
+  string admin_url = 9;
+  string admin_type = 10;
+}
+
+message GetUserDatabasesRequest {
+  string namespace = 1;
+}
+
+message GetUserDatabasesResponse {
+  bool success = 1;
+  string namespace = 2;
+  repeated Database databases = 3;
+  int32 count = 4;
+}
+
+message Database {
+  string name = 1;
+  string type = 2;
+  string status = 3;
+  string namespace = 4;
+  string user_id = 5;
+  string admin_url = 6;
+  string admin_type = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message DeleteDatabaseRequest {
+  string namespace = 1;
+  string name = 2;
+}
+
+message DeleteDatabaseResponse {
+  bool success = 1;
+  string message = 2;
+  string name = 3;
+  string namespace = 4;
+}
+message GetAllNamespacesRequest {
+  // Empty - gets all namespaces
+}
+
+message GetAllNamespacesResponse {
+  bool success = 1;
+  string message = 2;
+  repeated NamespaceInfo namespaces = 3;
+}
+
+message NamespaceInfo {
+  string name = 1;
+  google.protobuf.Timestamp created_at = 2;
+  int32 database_count = 3;
+  string status = 4;
+}

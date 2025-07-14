@@ -12,9 +12,9 @@ import (
 // Database connection parameters
 const (
 	port     = 5432
-	user     = "root"
-	password = "root"
-	dbname   = "test"
+	user     = "postgres"
+	password = "postgres"
+	dbname   = "testdb"
 )
 
 // DBClient represents a PostgreSQL database client
