@@ -9,6 +9,7 @@ import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import Services from './components/Services';
 import Users from './components/Users';
+import AdminDatabaseManager from './components/AdminDatabaseManager';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -21,15 +22,46 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+// Admin Route component
+const AdminRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem('token') !== null;
+  const userData = localStorage.getItem('user');
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+  try {
+    const user = JSON.parse(userData);
+    const isAdmin = user && (
+      user.username === 'admin' || 
+      user.email?.includes('admin') ||
+      user.id === 1 // customize this logic as needed
+    );
+    if (!isAdmin) {
+      return <Navigate to="/dashboard" />;
+    }
+    return children;
+  } catch (error) {
+    return <Navigate to="/login" />;
+  }
+};
+
 function App() {
   return (
     <div className="App">
       <Navbar />
       <Routes>
+        {/* Redirect root to dashboard if logged in, otherwise to login */}
+        <Route 
+          path="/" 
+          element={
+            localStorage.getItem('token') ? 
+              <Navigate to="/dashboard" /> : 
+              <Navigate to="/login" />
+          } 
+        />
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        
         {/* Protected routes */}
         <Route 
           path="/dashboard" 
@@ -55,14 +87,13 @@ function App() {
             </ProtectedRoute>
           } 
         />
-        
-        {/* Redirect root to dashboard if logged in, otherwise to login */}
+        {/* Admin-only route */}
         <Route 
-          path="/" 
+          path="/admin/databases" 
           element={
-            localStorage.getItem('token') ? 
-              <Navigate to="/dashboard" /> : 
-              <Navigate to="/login" />
+            <AdminRoute>
+              <AdminDatabaseManager />
+            </AdminRoute>
           } 
         />
       </Routes>

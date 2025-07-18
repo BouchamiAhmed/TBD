@@ -20,10 +20,11 @@ func main() {
 
 	// Initialize Database connection
 	var dbClient *database.DBClient
-	dbHost := os.Getenv("DB_HOST")
+	// Get PostgreSQL connection details from environment or use cluster defaults
+	dbHost := os.Getenv("POSTGRES_HOST")
 	if dbHost == "" {
-		dbHost = "localhost" // Default for local development
-		// When deployed in K8s, this would be something like "postgres-service.namespace.svc.cluster.local"
+		dbHost = "10.9.21.201" // Updated PostgreSQL cluster IP
+		log.Printf("Using default PostgreSQL host: %s", dbHost)
 	}
 
 	dbUsername := os.Getenv("DB_USERNAME")

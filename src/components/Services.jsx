@@ -45,21 +45,6 @@ const Services = (props) => {
         }
     }, [currentUser, showDatabasesList]);
 
-    // NEW: Function to generate correct admin URL based on database type
-    const generateAdminUrl = (database) => {
-        const namespace = database.namespace;
-        const dbName = database.name;
-        
-        if (database.type === 'mysql') {
-            return `http://10.9.21.201/${namespace}/${dbName}-phpmyadmin/`;
-        } else if (database.type === 'postgresql') {
-            return `http://10.9.21.201/${namespace}/${dbName}-pgadmin/`;
-        }
-        
-        // Fallback to the original adminUrl if available
-        return database.adminUrl;
-    };
-
     // NEW: Function to load user's databases
     const loadUserDatabases = async () => {
         if (!currentUser) return;
@@ -405,7 +390,6 @@ const Services = (props) => {
                                         {databases.map(database => {
                                             const deleteKey = `${database.namespace}-${database.name}`;
                                             const isDeleting = deleteLoading[deleteKey];
-                                            const correctAdminUrl = generateAdminUrl(database);
                                             
                                             return (
                                                 <div key={database.name} className="col-md-6 col-lg-4 mb-3">
@@ -425,22 +409,15 @@ const Services = (props) => {
                                                                 <div><strong>Type:</strong> {database.type?.toUpperCase()}</div>
                                                                 <div><strong>Admin:</strong> {database.adminType}</div>
                                                                 <div><strong>Created:</strong> {new Date(database.createdAt).toLocaleDateString()}</div>
-                                                                <div className="mt-1 text-break">
-                                                                    <strong>URL:</strong> 
-                                                                    <small className="text-muted d-block">
-                                                                        {correctAdminUrl}
-                                                                    </small>
-                                                                </div>
                                                             </div>
 
                                                             <div className="d-grid gap-2">
-                                                                {correctAdminUrl && (
+                                                                {database.adminUrl && (
                                                                     <a 
-                                                                        href={correctAdminUrl} 
+                                                                        href={database.adminUrl} 
                                                                         target="_blank" 
                                                                         rel="noopener noreferrer"
                                                                         className="btn btn-outline-primary btn-sm"
-                                                                        title={`Open ${database.adminType} at ${correctAdminUrl}`}
                                                                     >
                                                                         <i className="fas fa-external-link-alt me-2"></i>
                                                                         Open {database.adminType}
@@ -627,7 +604,7 @@ const Services = (props) => {
                                             <li><strong>MySQL Port:</strong> 3306</li>
                                             <li><strong>PostgreSQL Port:</strong> 5432</li>
                                             <li><strong>Your Namespace:</strong> {currentUser ? `${currentUser.id}${currentUser.username}` : 'Please log in'}</li>
-                                            <li><strong>Admin Access:</strong> http://10.9.21.201/{`{namespace}/{service}-{admintype}`}</li>
+                                            <li><strong>Admin Access:</strong> http://10.9.21.201/{`{namespace}/{service}`}</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -750,6 +727,11 @@ const Services = (props) => {
                                     </div>
                                 </form>
                                 
+                                <div className="alert alert-info" role="alert">
+                                    <i className="fas fa-server me-2"></i>
+                                    <strong>REST API:</strong> Database creation uses the proven TBDback REST backend. Management (view/delete) supports both REST and gRPC microservice backends. Switch above to try gRPC!
+                                </div>
+
                                 <hr className="mt-4" />
                                 <div className="small text-muted">
                                     <h6>Database will be created with:</h6>
