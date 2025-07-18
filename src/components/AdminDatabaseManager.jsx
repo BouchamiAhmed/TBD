@@ -1,6 +1,7 @@
-// src/components/AdminDatabaseManager.jsx - Admin-only gRPC database management
+// src/components/AdminDatabaseManager.jsx - Updated with gRPC diagnostics
 import React, { useState, useEffect } from 'react';
 import adminService from '../services/adminService';
+import GrpcDiagnostics from './GrpcDiagnostics';
 
 const AdminDatabaseManager = () => {
     const [namespaces, setNamespaces] = useState([]);
@@ -11,18 +12,33 @@ const AdminDatabaseManager = () => {
     const [deleteLoading, setDeleteLoading] = useState({});
     const [error, setError] = useState('');
     const [grpcStatus, setGrpcStatus] = useState('unknown');
+    const [showDiagnostics, setShowDiagnostics] = useState(false);
+    const [connectionInfo, setConnectionInfo] = useState(null);
 
     useEffect(() => {
+        updateConnectionInfo();
         testGrpcConnection();
     }, []);
 
+    const updateConnectionInfo = () => {
+        const info = adminService.getConnectionInfo();
+        setConnectionInfo(info);
+    };
+
     const testGrpcConnection = async () => {
         console.log('🔍 Testing gRPC connection...');
-        const isConnected = await adminService.testConnection();
-        setGrpcStatus(isConnected ? 'connected' : 'disconnected');
+        setGrpcStatus('testing');
         
-        if (isConnected) {
-            loadNamespaces();
+        try {
+            const isConnected = await adminService.testConnection();
+            setGrpcStatus(isConnected ? 'connected' : 'disconnected');
+            
+            if (isConnected) {
+                loadNamespaces();
+            }
+        } catch (error) {
+            console.error('Connection test error:', error);
+            setGrpcStatus('disconnected');
         }
     };
 
@@ -116,28 +132,74 @@ const AdminDatabaseManager = () => {
             case 'connected':
                 return (
                     <div className="alert alert-success" role="alert">
-                        <i className="fas fa-check-circle me-2"></i>
-                        <strong>gRPC Connected:</strong> Admin microservice is responding
+                        <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i className="fas fa-check-circle me-2"></i>
+                                <strong>gRPC Connected:</strong> Admin microservice is responding
+                                {connectionInfo && (
+                                    <div className="small mt-1">
+                                        Mode: {connectionInfo.environment} | URL: {connectionInfo.url}
+                                    </div>
+                                )}
+                            </div>
+                            <button 
+                                className="btn btn-sm btn-outline-success"
+                                onClick={() => setShowDiagnostics(!showDiagnostics)}
+                            >
+                                <i className="fas fa-cog me-1"></i>
+                                {showDiagnostics ? 'Hide' : 'Show'} Diagnostics
+                            </button>
+                        </div>
                     </div>
                 );
             case 'disconnected':
                 return (
                     <div className="alert alert-danger" role="alert">
-                        <i className="fas fa-exclamation-triangle me-2"></i>
-                        <strong>gRPC Disconnected:</strong> Cannot reach admin microservice
-                        <button 
-                            className="btn btn-outline-danger btn-sm ms-2"
-                            onClick={testGrpcConnection}
-                        >
-                            Retry
-                        </button>
+                        <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i className="fas fa-exclamation-triangle me-2"></i>
+                                <strong>gRPC Disconnected:</strong> Cannot reach admin microservice
+                                {connectionInfo && (
+                                    <div className="small mt-1">
+                                        Trying: {connectionInfo.environment} mode | URL: {connectionInfo.url}
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <button 
+                                    className="btn btn-outline-danger btn-sm ms-2"
+                                    onClick={testGrpcConnection}
+                                >
+                                    Retry
+                                </button>
+                                <button 
+                                    className="btn btn-outline-warning btn-sm ms-2"
+                                    onClick={() => setShowDiagnostics(!showDiagnostics)}
+                                >
+                                    <i className="fas fa-tools me-1"></i>
+                                    Diagnostics
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'testing':
+                return (
+                    <div className="alert alert-info" role="alert">
+                        <i className="fas fa-spinner fa-spin me-2"></i>
+                        <strong>Testing gRPC connection...</strong>
+                        {connectionInfo && (
+                            <div className="small mt-1">
+                                Testing: {connectionInfo.environment} mode | URL: {connectionInfo.url}
+                            </div>
+                        )}
                     </div>
                 );
             default:
                 return (
                     <div className="alert alert-info" role="alert">
                         <i className="fas fa-spinner fa-spin me-2"></i>
-                        <strong>Testing gRPC connection...</strong>
+                        <strong>Initializing gRPC connection...</strong>
                     </div>
                 );
         }
@@ -166,6 +228,15 @@ const AdminDatabaseManager = () => {
                     {getConnectionStatusCard()}
                 </div>
             </div>
+
+            {/* Diagnostics Panel (collapsible) */}
+            {showDiagnostics && (
+                <div className="row mb-4">
+                    <div className="col-12">
+                        <GrpcDiagnostics />
+                    </div>
+                </div>
+            )}
 
             {/* Stats Row */}
             <div className="row mb-4">
@@ -239,11 +310,19 @@ const AdminDatabaseManager = () => {
                                     </div>
                                     <div className="h6 mb-0 font-weight-bold text-gray-800">
                                         {grpcStatus === 'connected' ? 'Online' : 
-                                         grpcStatus === 'disconnected' ? 'Offline' : 'Testing...'}
+                                         grpcStatus === 'disconnected' ? 'Offline' : 
+                                         grpcStatus === 'testing' ? 'Testing...' : 'Initializing...'}
                                     </div>
+                                    {connectionInfo && (
+                                        <div className="small text-muted">
+                                            {connectionInfo.environment} mode
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="col-auto">
-                                    <i className={`fas ${grpcStatus === 'connected' ? 'fa-rocket text-success' : 'fa-exclamation-triangle text-warning'} fa-2x`}></i>
+                                    <i className={`fas ${grpcStatus === 'connected' ? 'fa-rocket text-success' : 
+                                                        grpcStatus === 'testing' ? 'fa-spinner fa-spin text-info' :
+                                                        'fa-exclamation-triangle text-warning'} fa-2x`}></i>
                                 </div>
                             </div>
                         </div>
@@ -279,11 +358,24 @@ const AdminDatabaseManager = () => {
                             ) : error ? (
                                 <div className="alert alert-danger m-3" role="alert">
                                     <strong>Error:</strong> {error}
+                                    <div className="mt-2">
+                                        <button 
+                                            className="btn btn-sm btn-outline-danger"
+                                            onClick={() => setShowDiagnostics(true)}
+                                        >
+                                            Show Diagnostics
+                                        </button>
+                                    </div>
                                 </div>
                             ) : namespaces.length === 0 ? (
                                 <div className="text-center py-4 text-muted">
                                     <i className="fas fa-cube fa-2x mb-2"></i>
                                     <div>No namespaces found</div>
+                                    {grpcStatus !== 'connected' && (
+                                        <div className="mt-2">
+                                            <small>Check gRPC connection above</small>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="list-group list-group-flush">
