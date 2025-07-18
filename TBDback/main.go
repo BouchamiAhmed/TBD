@@ -27,9 +27,9 @@ func main() {
 	fmt.Println("╚════════════════════════════════════════════════════════════╝")
 
 	// Get database host from environment or use default
-	dbHost := "10.9.21.40"
+	dbHost := "10.9.21.201"
 	if dbHost == "" {
-		dbHost = "10.9.21.40"
+		dbHost = "10.9.21.201"
 	}
 	fmt.Printf("🔄 Using database host: %s\n", dbHost)
 
@@ -76,7 +76,7 @@ func main() {
 		w.Write([]byte("K3s Database SaaS API is running"))
 	}).Methods("GET")
 
-	// Database creation endpoint - UPDATED TO USE GO CLIENT WITH TRAEFIK
+	// Database creation endpoint - UPDATED TO MATCH ACTUAL INGRESSROUTE PATTERN
 	r.HandleFunc("/api/databases", func(w http.ResponseWriter, r *http.Request) {
 		var dbRequest DatabaseRequest
 		if err := json.NewDecoder(r.Body).Decode(&dbRequest); err != nil {
@@ -122,11 +122,12 @@ func main() {
 
 		host = fmt.Sprintf("%s.%s.svc.cluster.local", dbRequest.Name, targetNamespace)
 
+		// CORRECTED URL PATTERN TO MATCH ACTUAL INGRESSROUTE: /{namespace}/{dbname}-{admintype}
 		if dbRequest.Type == "mysql" {
-			adminURL = fmt.Sprintf("http://10.9.21.40/%s/%s-phpmyadmin", targetNamespace, dbRequest.Name)
+			adminURL = fmt.Sprintf("http://10.9.21.201/%s/%s-phpmyadmin", targetNamespace, dbRequest.Name)
 			adminType = "phpMyAdmin"
 		} else {
-			adminURL = fmt.Sprintf("http://10.9.21.40/%s/%s-pgadmin", targetNamespace, dbRequest.Name)
+			adminURL = fmt.Sprintf("http://10.9.21.201/%s/%s-pgadmin/login?next=", targetNamespace, dbRequest.Name)
 			adminType = "pgAdmin"
 		}
 

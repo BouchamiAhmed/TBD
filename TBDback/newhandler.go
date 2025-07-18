@@ -70,70 +70,78 @@ func deployPostgreSQL(ctx context.Context, clientset *kubernetes.Clientset, dbRe
 	}
 	fmt.Printf("✅ Created pgAdmin ClusterIP service: %s-pgadmin\n", dbRequest.Name)
 
-	// Create Traefik Middleware for path stripping
-	if err := createTraefikMiddleware(ctx, dbRequest, namespace, "pgadmin"); err != nil {
-		return fmt.Errorf("failed to create Traefik middleware: %w", err)
+	// Create ONLY headers middleware for pgAdmin (NO stripPrefix)
+	if err := createPgAdminMiddleware(ctx, dbRequest, namespace); err != nil {
+		return fmt.Errorf("failed to create pgAdmin middleware: %w", err)
 	}
-	fmt.Printf("✅ Created Traefik middleware for pgAdmin\n")
+	fmt.Printf("✅ Created pgAdmin headers middleware (NO strip prefix)\n")
 
-	// Create Traefik IngressRoute (port 80 since it's ClusterIP)
-	if err := createTraefikIngressRoute(ctx, dbRequest, namespace, "pgadmin", 80); err != nil {
-		return fmt.Errorf("failed to create Traefik IngressRoute: %w", err)
+	// Create Traefik IngressRoute for pgAdmin (NO stripPrefix)
+	if err := createPgAdminIngressRoute(ctx, dbRequest, namespace, 80); err != nil {
+		return fmt.Errorf("failed to create pgAdmin IngressRoute: %w", err)
 	}
-	fmt.Printf("✅ Created Traefik IngressRoute for pgAdmin\n")
+	fmt.Printf("✅ Created pgAdmin IngressRoute (NO strip prefix)\n")
 
 	return nil
 }
 
-// createTraefikMiddleware creates a Traefik Middleware using Go client
-func createTraefikMiddleware(ctx context.Context, dbRequest DatabaseRequest, namespace, adminType string) error {
+// createPgAdminMiddleware creates ONLY headers middleware for pgAdmin
+func createPgAdminMiddleware(ctx context.Context, dbRequest DatabaseRequest, namespace string) error {
 	if dynamicClient == nil {
 		return fmt.Errorf("dynamic client not available")
 	}
 
-	middlewareName := fmt.Sprintf("%s-%s-stripprefix", dbRequest.Name, adminType)
-	pathPrefix := fmt.Sprintf("/%s/%s-%s", namespace, dbRequest.Name, adminType)
-
-	middleware := &unstructured.Unstructured{
+	// ONLY headers middleware - NO stripPrefix
+	headersMiddleware := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "traefik.io/v1alpha1",
 			"kind":       "Middleware",
 			"metadata": map[string]interface{}{
-				"name":      middlewareName,
+				"name":      fmt.Sprintf("%s-pgadmin-headers", dbRequest.Name),
 				"namespace": namespace,
-				"labels": map[string]interface{}{
-					"app":                          fmt.Sprintf("%s-%s", dbRequest.Name, adminType),
-					"app.kubernetes.io/managed-by": "db-saas",
-				},
 			},
 			"spec": map[string]interface{}{
-				"stripPrefix": map[string]interface{}{
-					"prefixes": []interface{}{pathPrefix},
+				"headers": map[string]interface{}{
+					"customRequestHeaders": map[string]interface{}{
+						"X-User-ID":   strconv.Itoa(dbRequest.UserID),
+						"X-Username":  dbRequest.Username,
+						"X-Namespace": namespace,
+					},
 				},
 			},
 		},
 	}
 
-	gvr := schema.GroupVersionResource{
+	headersGVR := schema.GroupVersionResource{
 		Group:    "traefik.io",
 		Version:  "v1alpha1",
 		Resource: "middlewares",
 	}
 
-	_, err := dynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, middleware, metav1.CreateOptions{})
-	return err
+	_, err := dynamicClient.Resource(headersGVR).Namespace(namespace).Create(ctx, headersMiddleware, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create headers middleware: %w", err)
+	}
+
+	fmt.Printf("✅ Created ONLY headers middleware for pgAdmin (no stripPrefix)\n")
+	return nil
 }
 
-// createTraefikIngressRoute creates a Traefik IngressRoute using Go client
-func createTraefikIngressRoute(ctx context.Context, dbRequest DatabaseRequest, namespace, adminType string, port int) error {
+// createPgAdminIngressRoute creates IngressRoute for pgAdmin WITHOUT stripPrefix
+func createPgAdminIngressRoute(ctx context.Context, dbRequest DatabaseRequest, namespace string, port int) error {
 	if dynamicClient == nil {
 		return fmt.Errorf("dynamic client not available")
 	}
 
-	ingressName := fmt.Sprintf("%s-%s-ingress", dbRequest.Name, adminType)
-	serviceName := fmt.Sprintf("%s-%s", dbRequest.Name, adminType)
-	middlewareName := fmt.Sprintf("%s-%s-stripprefix", dbRequest.Name, adminType)
-	pathPrefix := fmt.Sprintf("/%s/%s-%s", namespace, dbRequest.Name, adminType)
+	ingressName := fmt.Sprintf("%s-pgadmin-ingress", dbRequest.Name)
+	serviceName := fmt.Sprintf("%s-pgadmin", dbRequest.Name)
+	headersMW := fmt.Sprintf("%s-pgadmin-headers", dbRequest.Name)
+	pathPrefix := fmt.Sprintf("/%s/%s-pgadmin", namespace, dbRequest.Name)
+
+	fmt.Printf("🔍 Creating pgAdmin IngressRoute:\n")
+	fmt.Printf("   - Service: %s (port %d)\n", serviceName, port)
+	fmt.Printf("   - Path: %s\n", pathPrefix)
+	fmt.Printf("   - Middleware: %s (headers ONLY, NO stripPrefix)\n", headersMW)
 
 	ingressRoute := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -151,17 +159,16 @@ func createTraefikIngressRoute(ctx context.Context, dbRequest DatabaseRequest, n
 				"entryPoints": []interface{}{"web"},
 				"routes": []interface{}{
 					map[string]interface{}{
-						"match": fmt.Sprintf(`Host("10.9.21.40") && PathPrefix("%s")`, pathPrefix),
+						"match": fmt.Sprintf(`Host("10.9.21.201") && PathPrefix("%s")`, pathPrefix),
 						"kind":  "Rule",
+						// CRITICAL: ONLY headers middleware, NO stripPrefix
+						"middlewares": []interface{}{
+							map[string]interface{}{"name": headersMW},
+						},
 						"services": []interface{}{
 							map[string]interface{}{
 								"name": serviceName,
 								"port": port,
-							},
-						},
-						"middlewares": []interface{}{
-							map[string]interface{}{
-								"name": middlewareName,
 							},
 						},
 					},
@@ -177,7 +184,238 @@ func createTraefikIngressRoute(ctx context.Context, dbRequest DatabaseRequest, n
 	}
 
 	_, err := dynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, ingressRoute, metav1.CreateOptions{})
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to create IngressRoute: %w", err)
+	}
+
+	fmt.Printf("✅ Created pgAdmin IngressRoute: %s (NO stripPrefix)\n", ingressName)
+	return nil
+}
+
+// Simplified pgAdmin deployment
+func createPgAdminDeployment(dbRequest DatabaseRequest, namespace string) *appsv1.Deployment {
+	replicas := int32(1)
+	scriptName := fmt.Sprintf("/%s/%s-pgadmin", namespace, dbRequest.Name)
+
+	fmt.Printf("🔍 pgAdmin SCRIPT_NAME: %s\n", scriptName)
+	fmt.Printf("🔍 pgAdmin should receive full paths like: %s/login\n", scriptName)
+
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dbRequest.Name + "-pgadmin",
+			Namespace: namespace,
+			Labels: map[string]string{
+				"app":                          dbRequest.Name + "-pgadmin",
+				"app.kubernetes.io/managed-by": "db-saas",
+			},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": dbRequest.Name + "-pgadmin",
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": dbRequest.Name + "-pgadmin",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "pgadmin",
+							Image: "dpage/pgadmin4:latest",
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 80,
+								},
+							},
+							Env: []corev1.EnvVar{
+								{Name: "PGADMIN_DEFAULT_EMAIL", Value: fmt.Sprintf("%s@gmail.com", dbRequest.Username)},
+								{Name: "PGADMIN_DEFAULT_PASSWORD", Value: dbRequest.Password},
+								// CRITICAL: Tell pgAdmin its subdirectory
+								{Name: "SCRIPT_NAME", Value: scriptName},
+								// Disable problematic features
+								{Name: "PGADMIN_CONFIG_WTF_CSRF_ENABLED", Value: "False"},
+								{Name: "PGADMIN_CONFIG_SESSION_COOKIE_SECURE", Value: "False"},
+								// Ensure it binds to all interfaces
+								{Name: "PGADMIN_LISTEN_ADDRESS", Value: "0.0.0.0"},
+								{Name: "PGADMIN_LISTEN_PORT", Value: "80"},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// Simple pgAdmin service
+func createPgAdminService(dbRequest DatabaseRequest) *corev1.Service {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: dbRequest.Name + "-pgadmin",
+			Labels: map[string]string{
+				"app": dbRequest.Name + "-pgadmin",
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Port:       80,
+					TargetPort: intstr.FromInt(80),
+				},
+			},
+			Selector: map[string]string{
+				"app": dbRequest.Name + "-pgadmin",
+			},
+			Type: corev1.ServiceTypeClusterIP,
+		},
+	}
+}
+
+// createTraefikMiddleware creates a Traefik Middleware using Go client
+// CORRECTED: pgAdmin does NOT use StripPrefix - only phpMyAdmin does
+func createTraefikMiddleware(ctx context.Context, dbRequest DatabaseRequest, namespace, adminType string) error {
+	if dynamicClient == nil {
+		return fmt.Errorf("dynamic client not available")
+	}
+
+	// === Create HEADERS middleware (for both) ===
+	headersMiddleware := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "traefik.io/v1alpha1",
+			"kind":       "Middleware",
+			"metadata": map[string]interface{}{
+				"name":      fmt.Sprintf("%s-%s-headers", dbRequest.Name, adminType),
+				"namespace": namespace,
+			},
+			"spec": map[string]interface{}{
+				"headers": map[string]interface{}{
+					"customRequestHeaders": map[string]interface{}{
+						"X-User-ID":   strconv.Itoa(dbRequest.UserID),
+						"X-Username":  dbRequest.Username,
+						"X-Namespace": namespace,
+					},
+				},
+			},
+		},
+	}
+
+	headersGVR := schema.GroupVersionResource{
+		Group:    "traefik.io",
+		Version:  "v1alpha1",
+		Resource: "middlewares",
+	}
+
+	if _, err := dynamicClient.Resource(headersGVR).Namespace(namespace).Create(ctx, headersMiddleware, metav1.CreateOptions{}); err != nil {
+		return fmt.Errorf("failed to create headers middleware: %w", err)
+	}
+
+	// === Create STRIPPREFIX middleware ONLY for phpMyAdmin ===
+	if adminType == "phpmyadmin" {
+		pathPrefix := fmt.Sprintf("/%s/%s-%s", namespace, dbRequest.Name, adminType)
+		stripMiddleware := &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"apiVersion": "traefik.io/v1alpha1",
+				"kind":       "Middleware",
+				"metadata": map[string]interface{}{
+					"name":      fmt.Sprintf("%s-%s-stripprefix", dbRequest.Name, adminType),
+					"namespace": namespace,
+				},
+				"spec": map[string]interface{}{
+					"stripPrefix": map[string]interface{}{
+						"prefixes": []interface{}{pathPrefix},
+					},
+				},
+			},
+		}
+
+		if _, err := dynamicClient.Resource(headersGVR).Namespace(namespace).Create(ctx, stripMiddleware, metav1.CreateOptions{}); err != nil {
+			return fmt.Errorf("failed to create stripPrefix middleware: %w", err)
+		}
+
+		fmt.Printf("✅ Created headers and stripPrefix middlewares for %s-%s\n", dbRequest.Name, adminType)
+		fmt.Printf("💡 phpMyAdmin: path will be stripped from %s to /\n", pathPrefix)
+	} else if adminType == "pgadmin" {
+		fmt.Printf("✅ Created headers middleware for %s-%s (NO strip prefix for pgAdmin)\n", dbRequest.Name, adminType)
+		pathPrefix := fmt.Sprintf("/%s/%s-%s", namespace, dbRequest.Name, adminType)
+		fmt.Printf("💡 pgAdmin: will receive full path %s and handle subdirectory via SCRIPT_NAME\n", pathPrefix)
+	}
+
+	return nil
+}
+
+// createTraefikIngressRoute creates a Traefik IngressRoute using Go client
+// CORRECTED: Different middleware setup for pgAdmin vs phpMyAdmin
+func createTraefikIngressRoute(ctx context.Context, dbRequest DatabaseRequest, namespace, adminType string, port int) error {
+	if dynamicClient == nil {
+		return fmt.Errorf("dynamic client not available")
+	}
+
+	ingressName := fmt.Sprintf("%s-%s-ingress", dbRequest.Name, adminType)
+	serviceName := fmt.Sprintf("%s-%s", dbRequest.Name, adminType)
+	headersMW := fmt.Sprintf("%s-%s-headers", dbRequest.Name, adminType)
+	pathPrefix := fmt.Sprintf("/%s/%s-%s", namespace, dbRequest.Name, adminType)
+
+	var middlewares []interface{}
+	middlewares = append(middlewares, map[string]interface{}{"name": headersMW})
+
+	// ONLY add stripPrefix for phpMyAdmin, NOT for pgAdmin
+	if adminType == "phpmyadmin" {
+		stripMW := fmt.Sprintf("%s-%s-stripprefix", dbRequest.Name, adminType)
+		middlewares = append(middlewares, map[string]interface{}{"name": stripMW})
+		fmt.Printf("🔍 pgMyAdmin IngressRoute: PathPrefix=%s WITH StripPrefix\n", pathPrefix)
+	} else if adminType == "pgadmin" {
+		fmt.Printf("🔍 pgAdmin IngressRoute: PathPrefix=%s WITHOUT StripPrefix\n", pathPrefix)
+	}
+
+	ingressRoute := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "traefik.io/v1alpha1",
+			"kind":       "IngressRoute",
+			"metadata": map[string]interface{}{
+				"name":      ingressName,
+				"namespace": namespace,
+				"labels": map[string]interface{}{
+					"app":                          serviceName,
+					"app.kubernetes.io/managed-by": "db-saas",
+				},
+			},
+			"spec": map[string]interface{}{
+				"entryPoints": []interface{}{"web"},
+				"routes": []interface{}{
+					map[string]interface{}{
+						"match":       fmt.Sprintf(`Host("10.9.21.201") && PathPrefix("%s")`, pathPrefix),
+						"kind":        "Rule",
+						"middlewares": middlewares,
+						"services": []interface{}{
+							map[string]interface{}{
+								"name": serviceName,
+								"port": port,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "traefik.io",
+		Version:  "v1alpha1",
+		Resource: "ingressroutes",
+	}
+
+	_, err := dynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, ingressRoute, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to create IngressRoute: %w", err)
+	}
+
+	fmt.Printf("✅ Created IngressRoute: %s\n", ingressName)
+	return nil
 }
 
 // MySQL resource creation functions
@@ -269,6 +507,9 @@ func createMySQLService(dbRequest DatabaseRequest) *corev1.Service {
 
 func createPhpMyAdminDeployment(dbRequest DatabaseRequest, namespace string) *appsv1.Deployment {
 	replicas := int32(1)
+	// Calculate the absolute URI for phpMyAdmin
+	absoluteURI := fmt.Sprintf("http://10.9.21.201/%s/%s-phpmyadmin/", namespace, dbRequest.Name)
+
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dbRequest.Name + "-phpmyadmin",
@@ -310,6 +551,8 @@ func createPhpMyAdminDeployment(dbRequest DatabaseRequest, namespace string) *ap
 								{Name: "PMA_USER", Value: dbRequest.Username},
 								{Name: "PMA_PASSWORD", Value: dbRequest.Password},
 								{Name: "MYSQL_ROOT_PASSWORD", Value: dbRequest.Password},
+								// THIS IS THE KEY FIX: Tell phpMyAdmin its absolute URI
+								{Name: "PMA_ABSOLUTE_URI", Value: absoluteURI},
 							},
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
@@ -328,7 +571,6 @@ func createPhpMyAdminDeployment(dbRequest DatabaseRequest, namespace string) *ap
 		},
 	}
 }
-
 func createPhpMyAdminService(dbRequest DatabaseRequest) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -438,94 +680,6 @@ func createPostgreSQLService(dbRequest DatabaseRequest) *corev1.Service {
 				"app": dbRequest.Name,
 			},
 			Type: corev1.ServiceTypeClusterIP,
-		},
-	}
-}
-
-func createPgAdminDeployment(dbRequest DatabaseRequest, namespace string) *appsv1.Deployment {
-	replicas := int32(1)
-	return &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      dbRequest.Name + "-pgadmin",
-			Namespace: namespace,
-			Labels: map[string]string{
-				"app":                          dbRequest.Name + "-pgadmin",
-				"app.kubernetes.io/component":  "admin-dashboard",
-				"app.kubernetes.io/managed-by": "db-saas",
-				"db-saas/type":                 "pgadmin",
-				"db-saas/user-id":              strconv.Itoa(dbRequest.UserID),
-			},
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": dbRequest.Name + "-pgadmin",
-				},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": dbRequest.Name + "-pgadmin",
-					},
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "pgadmin",
-							Image: "dpage/pgadmin4:latest",
-							Ports: []corev1.ContainerPort{
-								{
-									ContainerPort: 80,
-								},
-							},
-							Env: []corev1.EnvVar{
-								{Name: "PGADMIN_DEFAULT_EMAIL", Value: fmt.Sprintf("admin%s@gmail.com", dbRequest.Name)},
-								{Name: "PGADMIN_DEFAULT_PASSWORD", Value: dbRequest.Password},
-								{Name: "PGADMIN_CONFIG_SERVER_MODE", Value: "False"},
-								{Name: "PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED", Value: "False"},
-							},
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceMemory: mustParseQuantity("256Mi"),
-									corev1.ResourceCPU:    mustParseQuantity("100m"),
-								},
-								Limits: corev1.ResourceList{
-									corev1.ResourceMemory: mustParseQuantity("512Mi"),
-									corev1.ResourceCPU:    mustParseQuantity("300m"),
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func createPgAdminService(dbRequest DatabaseRequest) *corev1.Service {
-	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: dbRequest.Name + "-pgadmin",
-			Labels: map[string]string{
-				"app":                          dbRequest.Name + "-pgadmin",
-				"app.kubernetes.io/component":  "admin-dashboard",
-				"app.kubernetes.io/managed-by": "db-saas",
-			},
-		},
-		Spec: corev1.ServiceSpec{
-			Ports: []corev1.ServicePort{
-				{
-					Port:       80, // Internal cluster port
-					TargetPort: intstr.FromInt(80),
-					Protocol:   corev1.ProtocolTCP,
-					Name:       "http",
-				},
-			},
-			Selector: map[string]string{
-				"app": dbRequest.Name + "-pgadmin",
-			},
-			Type: corev1.ServiceTypeClusterIP, // Changed from LoadBalancer
 		},
 	}
 }
@@ -706,6 +860,7 @@ func deleteTraefikMiddleware(ctx context.Context, dbName, namespace, adminType s
 }
 
 // listDatabasesInNamespace returns all databases in a namespace
+// listDatabasesInNamespace returns all databases in a namespace with STABLE URLs
 func listDatabasesInNamespace(namespace string) ([]map[string]interface{}, error) {
 	ctx := context.Background()
 
@@ -730,14 +885,14 @@ func listDatabasesInNamespace(namespace string) ([]map[string]interface{}, error
 			status = "error"
 		}
 
-		// Determine admin URL
+		// STABLE URL PATTERN: /{namespace}/admin/{adminType}/{dbname}
 		adminURL := ""
 		adminType := ""
 		if dbType == "mysql" {
-			adminURL = fmt.Sprintf("http://10.9.21.40/%s/%s-phpmyadmin", namespace, deployment.Name)
+			adminURL = fmt.Sprintf("http://10.9.21.201/%s/admin/phpmyadmin/%s", namespace, deployment.Name)
 			adminType = "phpMyAdmin"
 		} else if dbType == "postgresql" {
-			adminURL = fmt.Sprintf("http://10.9.21.40/%s/%s-pgadmin", namespace, deployment.Name)
+			adminURL = fmt.Sprintf("http://10.9.21.201/%s/admin/pgadmin/%s", namespace, deployment.Name)
 			adminType = "pgAdmin"
 		}
 

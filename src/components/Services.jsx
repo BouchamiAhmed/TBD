@@ -604,7 +604,7 @@ const Services = (props) => {
                                             <li><strong>MySQL Port:</strong> 3306</li>
                                             <li><strong>PostgreSQL Port:</strong> 5432</li>
                                             <li><strong>Your Namespace:</strong> {currentUser ? `${currentUser.id}${currentUser.username}` : 'Please log in'}</li>
-                                            <li><strong>Admin Access:</strong> http://10.9.21.40/{`{namespace}/{service}`}</li>
+                                            <li><strong>Admin Access:</strong> http://10.9.21.201/{`{namespace}/{service}`}</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -727,6 +727,11 @@ const Services = (props) => {
                                     </div>
                                 </form>
                                 
+                                <div className="alert alert-info" role="alert">
+                                    <i className="fas fa-server me-2"></i>
+                                    <strong>REST API:</strong> Database creation uses the proven TBDback REST backend. Management (view/delete) supports both REST and gRPC microservice backends. Switch above to try gRPC!
+                                </div>
+
                                 <hr className="mt-4" />
                                 <div className="small text-muted">
                                     <h6>Database will be created with:</h6>
