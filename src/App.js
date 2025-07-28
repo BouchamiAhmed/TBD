@@ -9,7 +9,8 @@ import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import Services from './components/Services';
 import Users from './components/Users';
-import AdminDatabaseManager from './components/AdminDatabaseManager';
+// Make sure this is importing the NEW simplified admin dashboard
+import SimplifiedAdminDashboard from './components/SimplifiedAdminDashboard.jsx';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -26,9 +27,11 @@ const ProtectedRoute = ({ children }) => {
 const AdminRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('token') !== null;
   const userData = localStorage.getItem('user');
+  
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
+  
   try {
     const user = JSON.parse(userData);
     const isAdmin = user && (
@@ -36,9 +39,11 @@ const AdminRoute = ({ children }) => {
       user.email?.includes('admin') ||
       user.id === 1 // customize this logic as needed
     );
+    
     if (!isAdmin) {
       return <Navigate to="/dashboard" />;
     }
+    
     return children;
   } catch (error) {
     return <Navigate to="/login" />;
@@ -59,9 +64,11 @@ function App() {
               <Navigate to="/login" />
           } 
         />
+        
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        
         {/* Protected routes */}
         <Route 
           path="/dashboard" 
@@ -87,14 +94,29 @@ function App() {
             </ProtectedRoute>
           } 
         />
-        {/* Admin-only route */}
+        
+        {/* Admin routes - ONLY add these, don't change existing routes */}
         <Route 
-          path="/admin/databases" 
+          path="/admin" 
           element={
             <AdminRoute>
-              <AdminDatabaseManager />
+              <SimplifiedAdminDashboard />
             </AdminRoute>
           } 
+        />
+        <Route 
+          path="/admin/dashboard" 
+          element={
+            <AdminRoute>
+              <SimplifiedAdminDashboard />
+            </AdminRoute>
+          } 
+        />
+        
+        {/* Legacy admin route redirect */}
+        <Route 
+          path="/admin/databases" 
+          element={<Navigate to="/admin" />}
         />
       </Routes>
     </div>

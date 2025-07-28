@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import adminService from '../services/adminService';
 import GrpcDiagnostics from './GrpcDiagnostics';
+import './AdminDashboard.css';
 
 const AdminDatabaseManager = () => {
     const [namespaces, setNamespaces] = useState([]);

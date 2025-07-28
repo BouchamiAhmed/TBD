@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -49,38 +50,45 @@ type DatabaseResponse struct {
 
 // NewK8sService creates a new Kubernetes service client
 func NewK8sService() (*K8sService, error) {
-	// Force use of local kubeconfig.yaml first
-	kubeconfig := "kubeconfig.yaml"
+	var config *rest.Config
+	var err error
 
-	// Only fall back to other locations if local file doesn't exist
-	if _, err := os.Stat(kubeconfig); os.IsNotExist(err) {
-		fmt.Printf("⚠️  Local kubeconfig.yaml not found, trying other locations...\n")
-		kubeconfig = os.Getenv("KUBECONFIG")
-		if kubeconfig == "" {
-			homeDir, err := os.UserHomeDir()
-			if err != nil {
-				return nil, fmt.Errorf("failed to get home directory: %w", err)
-			}
-			kubeconfig = filepath.Join(homeDir, ".kube", "config")
-		}
-	}
-
-	fmt.Printf("Using kubeconfig file: %s\n", kubeconfig)
-
-	// Use the same config loading as kubectl does
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	// Try in-cluster configuration first
+	config, err = rest.InClusterConfig()
 	if err != nil {
-		return nil, fmt.Errorf("failed to build config from kubeconfig: %w", err)
+		fmt.Printf("⚠️  In-cluster config failed: %v\n", err)
+		fmt.Println("🔄 Falling back to local development config...")
+
+		// Only fall back to kubeconfig for local development
+		if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+			kubeconfig := "kubeconfig.yaml"
+			if _, err := os.Stat(kubeconfig); os.IsNotExist(err) {
+				kubeconfig = os.Getenv("KUBECONFIG")
+				if kubeconfig == "" {
+					// Try default location
+					homeDir, herr := os.UserHomeDir()
+					if herr != nil {
+						return nil, fmt.Errorf("failed to get home directory: %w", herr)
+					}
+					kubeconfig = filepath.Join(homeDir, ".kube", "config")
+				}
+			}
+			config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+			if err != nil {
+				return nil, fmt.Errorf("failed to build config from kubeconfig: %w", err)
+			}
+			fmt.Printf("📁 Using kubeconfig: %s (development mode)\n", kubeconfig)
+		} else {
+			return nil, fmt.Errorf("failed to get in-cluster config: %w", err)
+		}
+	} else {
+		fmt.Println("✅ Using in-cluster configuration (ServiceAccount)")
 	}
 
-	fmt.Printf("Kubernetes API Server: %s\n", config.Host)
-
-	// Don't modify the TLS config - use exactly what's in kubeconfig
-	// This mimics kubectl behavior
+	fmt.Printf("🔗 Kubernetes API Server: %s\n", config.Host)
 
 	// Set a proper User-Agent to match kubectl
 	config.UserAgent = "admin-service/1.0"
-
 	// Increase timeout for better reliability
 	config.Timeout = 30 * time.Second
 
@@ -88,7 +96,6 @@ func NewK8sService() (*K8sService, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
-
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create dynamic client: %w", err)

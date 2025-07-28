@@ -14,6 +14,7 @@ import (
 	"github.com/rs/cors"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -27,7 +28,7 @@ func main() {
 	fmt.Println("╚════════════════════════════════════════════════════════════╝")
 
 	// Get database host from environment or use default
-	dbHost := "10.9.21.201"
+	dbHost := os.Getenv("DB_HOST")
 	if dbHost == "" {
 		dbHost = "10.9.21.201"
 	}
@@ -110,8 +111,10 @@ func main() {
 			http.Error(w, "User information (UserID and UserName) is required", http.StatusBadRequest)
 			return
 		}
-
-		port := "5432"
+		port := os.Getenv("DB_PORT")
+		if port == "" {
+			port = "5432"
+		}
 		if dbRequest.Type == "mysql" {
 			port = "3306"
 		}
@@ -346,56 +349,70 @@ func deployDatabaseToUserNamespace(dbRequest DatabaseRequest, clientset *kuberne
 
 // getDynamicClient creates a dynamic client for Traefik resources
 func getDynamicClient() (dynamic.Interface, error) {
-	kubeconfig := "kubeconfig.yaml"
-	if _, err := os.Stat(kubeconfig); os.IsNotExist(err) {
-		kubeconfig = os.Getenv("KUBECONFIG")
-		if kubeconfig == "" {
-			homeDir, err := os.UserHomeDir()
-			if err != nil {
-				return nil, fmt.Errorf("failed to get home directory: %w", err)
+	var config *rest.Config
+	var err error
+
+	// Try in-cluster configuration first
+	config, err = rest.InClusterConfig()
+	if err != nil {
+		if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+			kubeconfig := "kubeconfig.yaml"
+			if _, err := os.Stat(kubeconfig); os.IsNotExist(err) {
+				kubeconfig = os.Getenv("KUBECONFIG")
+				if kubeconfig == "" {
+					homeDir, herr := os.UserHomeDir()
+					if herr != nil {
+						return nil, fmt.Errorf("failed to get home directory: %w", herr)
+					}
+					kubeconfig = filepath.Join(homeDir, ".kube", "config")
+				}
 			}
-			kubeconfig = filepath.Join(homeDir, ".kube", "config")
+			config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+			if err != nil {
+				return nil, fmt.Errorf("failed to build config from kubeconfig: %w", err)
+			}
+			fmt.Printf("Using kubeconfig file: %s\n", kubeconfig)
+		} else {
+			return nil, fmt.Errorf("failed to get in-cluster config: %w", err)
 		}
+	} else {
+		fmt.Println("Using in-cluster configuration (ServiceAccount)")
 	}
-
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build config from kubeconfig: %w", err)
-	}
-
-	dynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
-	}
-
-	return dynamicClient, nil
+	config.UserAgent = "tbdback/1.0"
+	return dynamic.NewForConfig(config)
 }
 
-// getKubernetesClient creates a Kubernetes client from kubeconfig
+// getKubernetesClient creates a Kubernetes client from in-cluster config or kubeconfig
 func getKubernetesClient() (*kubernetes.Clientset, error) {
-	kubeconfig := "kubeconfig.yaml"
-	if _, err := os.Stat(kubeconfig); os.IsNotExist(err) {
-		kubeconfig = os.Getenv("KUBECONFIG")
-		if kubeconfig == "" {
-			homeDir, err := os.UserHomeDir()
-			if err != nil {
-				return nil, fmt.Errorf("failed to get home directory: %w", err)
+	var config *rest.Config
+	var err error
+
+	// Try in-cluster configuration first
+	config, err = rest.InClusterConfig()
+	if err != nil {
+		if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+			kubeconfig := "kubeconfig.yaml"
+			if _, err := os.Stat(kubeconfig); os.IsNotExist(err) {
+				kubeconfig = os.Getenv("KUBECONFIG")
+				if kubeconfig == "" {
+					homeDir, herr := os.UserHomeDir()
+					if herr != nil {
+						return nil, fmt.Errorf("failed to get home directory: %w", herr)
+					}
+					kubeconfig = filepath.Join(homeDir, ".kube", "config")
+				}
 			}
-			kubeconfig = filepath.Join(homeDir, ".kube", "config")
+			config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+			if err != nil {
+				return nil, fmt.Errorf("failed to build config from kubeconfig: %w", err)
+			}
+			fmt.Printf("Using kubeconfig file: %s\n", kubeconfig)
+		} else {
+			return nil, fmt.Errorf("failed to get in-cluster config: %w", err)
 		}
+	} else {
+		fmt.Println("Using in-cluster configuration (ServiceAccount)")
 	}
-
-	fmt.Printf("Using kubeconfig file: %s\n", kubeconfig)
-
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to build config from kubeconfig: %w", err)
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
-	}
-
-	return clientset, nil
+	config.UserAgent = "tbdback/1.0"
+	return kubernetes.NewForConfig(config)
 }
