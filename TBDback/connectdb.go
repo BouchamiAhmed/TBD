@@ -90,6 +90,30 @@ func (c *DBClient) CreateTablesIfNotExist() error {
 		return fmt.Errorf("error creating users table: %w", err)
 	}
 
+	// Create databases table for tracking deployed databases
+	fmt.Println("🔄 Creating databases table if it doesn't exist...")
+	dbQuery := `
+	CREATE TABLE IF NOT EXISTS databases (
+		id SERIAL PRIMARY KEY,
+		name VARCHAR(100) NOT NULL,
+		type VARCHAR(50) NOT NULL,
+		host VARCHAR(255) NOT NULL,
+		port VARCHAR(10) NOT NULL,
+		username VARCHAR(100) NOT NULL,
+		namespace VARCHAR(100) NOT NULL,
+		user_id INTEGER NOT NULL,
+		admin_url VARCHAR(500),
+		admin_type VARCHAR(50),
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		UNIQUE(name, namespace)
+	)`
+
+	_, err = c.db.Exec(dbQuery)
+	if err != nil {
+		fmt.Println("❌ Failed to create databases table")
+		return fmt.Errorf("error creating databases table: %w", err)
+	}
+
 	fmt.Println("✅ Database tables initialized successfully!")
 	log.Println("Database tables initialized")
 	return nil
@@ -287,4 +311,116 @@ func (c *DBClient) CreateUserFromLDAP(ldapUser *struct {
 
 	fmt.Printf("✅ LDAP user created: %s (ID: %d)\n", user.Username, user.ID)
 	return &user, nil
+}
+
+// Database tracking struct
+type Database struct {
+	ID        int       `json:"id"`
+	Name      string    `json:"name"`
+	Type      string    `json:"type"`
+	Host      string    `json:"host"`
+	Port      string    `json:"port"`
+	Username  string    `json:"username"`
+	Namespace string    `json:"namespace"`
+	UserID    int       `json:"userId"`
+	AdminURL  string    `json:"adminUrl"`
+	AdminType string    `json:"adminType"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+// CreateDatabase records a database deployment in PostgreSQL
+func (c *DBClient) CreateDatabase(name, dbType, host, port, username, namespace string, userID int, adminURL, adminType string) (*Database, error) {
+	fmt.Printf("🔄 Recording database deployment: %s (type: %s) in namespace: %s\n", name, dbType, namespace)
+
+	query := `
+	INSERT INTO databases (name, type, host, port, username, namespace, user_id, admin_url, admin_type)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	RETURNING id, name, type, host, port, username, namespace, user_id, admin_url, admin_type, created_at`
+
+	var database Database
+	err := c.db.QueryRow(
+		query,
+		name, dbType, host, port, username, namespace, userID, adminURL, adminType,
+	).Scan(
+		&database.ID,
+		&database.Name,
+		&database.Type,
+		&database.Host,
+		&database.Port,
+		&database.Username,
+		&database.Namespace,
+		&database.UserID,
+		&database.AdminURL,
+		&database.AdminType,
+		&database.CreatedAt,
+	)
+
+	if err != nil {
+		fmt.Printf("❌ Failed to record database deployment: %v\n", err)
+		return nil, fmt.Errorf("error recording database: %w", err)
+	}
+
+	fmt.Printf("✅ Database deployment recorded: %s (ID: %d)\n", database.Name, database.ID)
+	return &database, nil
+}
+
+// GetDatabasesByUserID retrieves all databases for a specific user
+func (c *DBClient) GetDatabasesByUserID(userID int) ([]Database, error) {
+	fmt.Printf("🔄 Retrieving databases for user ID: %d\n", userID)
+
+	query := `
+	SELECT id, name, type, host, port, username, namespace, user_id, admin_url, admin_type, created_at
+	FROM databases
+	WHERE user_id = $1
+	ORDER BY created_at DESC`
+
+	rows, err := c.db.Query(query, userID)
+	if err != nil {
+		fmt.Printf("❌ Failed to query databases: %v\n", err)
+		return nil, fmt.Errorf("error querying databases: %w", err)
+	}
+	defer rows.Close()
+
+	var databases []Database
+	for rows.Next() {
+		var db Database
+		if err := rows.Scan(
+			&db.ID, &db.Name, &db.Type, &db.Host, &db.Port,
+			&db.Username, &db.Namespace, &db.UserID,
+			&db.AdminURL, &db.AdminType, &db.CreatedAt,
+		); err != nil {
+			fmt.Printf("❌ Error scanning database row: %v\n", err)
+			return nil, fmt.Errorf("error scanning database row: %w", err)
+		}
+		databases = append(databases, db)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating database rows: %w", err)
+	}
+
+	fmt.Printf("✅ Retrieved %d databases for user ID %d\n", len(databases), userID)
+	return databases, nil
+}
+
+// DeleteDatabase removes a database record from PostgreSQL
+func (c *DBClient) DeleteDatabase(name, namespace string) error {
+	fmt.Printf("🔄 Deleting database record: %s in namespace %s\n", name, namespace)
+
+	query := `DELETE FROM databases WHERE name = $1 AND namespace = $2`
+
+	result, err := c.db.Exec(query, name, namespace)
+	if err != nil {
+		fmt.Printf("❌ Failed to delete database record: %v\n", err)
+		return fmt.Errorf("error deleting database: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		fmt.Printf("ℹ️  No database record found to delete\n")
+	} else {
+		fmt.Printf("✅ Database record deleted: %s\n", name)
+	}
+
+	return nil
 }
