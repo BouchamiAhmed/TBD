@@ -316,7 +316,6 @@ func createTraefikMiddleware(ctx context.Context, dbRequest DatabaseRequest, nam
 	// === Create REPLACEPATHREGEX middleware ONLY for phpMyAdmin ===
 	if adminType == "phpmyadmin" {
 		pathPrefix := fmt.Sprintf("/%s/%s-%s", namespace, dbRequest.Name, adminType)
-		// This regex replaces /namespace/dbname-phpmyadmin/(.*) with /$1
 		replacePathMiddleware := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"apiVersion": "traefik.io/v1alpha1",
@@ -327,8 +326,9 @@ func createTraefikMiddleware(ctx context.Context, dbRequest DatabaseRequest, nam
 				},
 				"spec": map[string]interface{}{
 					"replacePathRegex": map[string]interface{}{
-						"regex":       fmt.Sprintf(`^%s/(.*)`, pathPrefix),
-						"replacement": "/$1",
+						// This regex captures everything after the /namespace/dbname-phpmyadmin part
+						"regex":       fmt.Sprintf(`^/%s/%s-%s(.*)`, namespace, dbRequest.Name, adminType),
+						"replacement": "$1", // Replace with just the captured part
 					},
 				},
 			},
@@ -339,7 +339,8 @@ func createTraefikMiddleware(ctx context.Context, dbRequest DatabaseRequest, nam
 		}
 
 		fmt.Printf("✅ Created headers and replacePathRegex middlewares for %s-%s\n", dbRequest.Name, adminType)
-		fmt.Printf("💡 phpMyAdmin: path %s will be rewritten using regex\n", pathPrefix)
+		fmt.Printf("💡 phpMyAdmin: path %s/* will be rewritten to /*\n", pathPrefix)
+		fmt.Printf("💡 Regex pattern: ^/%s/%s-%s(.*)$ -> $1\n", namespace, dbRequest.Name, adminType)
 	} else if adminType == "pgadmin" {
 		fmt.Printf("✅ Created headers middleware for %s-%s (NO path rewriting for pgAdmin)\n", dbRequest.Name, adminType)
 	}
@@ -365,6 +366,7 @@ func createTraefikIngressRoute(ctx context.Context, dbRequest DatabaseRequest, n
 	if adminType == "phpmyadmin" {
 		replacePathMW := fmt.Sprintf("%s-%s-replacepath", dbRequest.Name, adminType)
 		middlewares = append(middlewares, map[string]interface{}{"name": replacePathMW})
+		middlewares = append(middlewares, map[string]interface{}{"name": headersMW})
 		fmt.Printf("🔍 phpMyAdmin IngressRoute: PathPrefix=%s WITH ReplacePathRegex\n", pathPrefix)
 	} else if adminType == "pgadmin" {
 		fmt.Printf("🔍 pgAdmin IngressRoute: PathPrefix=%s WITHOUT path rewriting\n", pathPrefix)
@@ -449,7 +451,7 @@ func createPhpMyAdminDeployment(dbRequest DatabaseRequest, namespace string) *ap
 					Containers: []corev1.Container{
 						{
 							Name:  "phpmyadmin",
-							Image: "phpmyadmin:5.2",
+							Image: "phpmyadmin:latest",
 							Ports: []corev1.ContainerPort{{ContainerPort: 80}},
 							Env: []corev1.EnvVar{
 								{Name: "PMA_HOST", Value: dbRequest.Name},
@@ -457,6 +459,7 @@ func createPhpMyAdminDeployment(dbRequest DatabaseRequest, namespace string) *ap
 								{Name: "PMA_USER", Value: dbRequest.Username},
 								{Name: "PMA_PASSWORD", Value: dbRequest.Password},
 								{Name: "MYSQL_ROOT_PASSWORD", Value: dbRequest.Password},
+
 								// NO PMA_ABSOLUTE_URI needed with ReplacePathRegex approach!
 							},
 							Resources: corev1.ResourceRequirements{
@@ -564,70 +567,6 @@ func createMySQLService(dbRequest DatabaseRequest) *corev1.Service {
 	}
 }
 
-/*
-	func createPhpMyAdminDeployment(dbRequest DatabaseRequest, namespace string) *appsv1.Deployment {
-		replicas := int32(1)
-		// Calculate the absolute URI for phpMyAdmin
-		absoluteURI := fmt.Sprintf("http://10.9.21.201/%s/%s-phpmyadmin", namespace, dbRequest.Name)
-		fmt.Printf("🔍 This is the URI %s", absoluteURI)
-
-		return &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      dbRequest.Name + "-phpmyadmin",
-				Namespace: namespace,
-				Labels: map[string]string{
-					"app":                          dbRequest.Name + "-phpmyadmin",
-					"app.kubernetes.io/component":  "admin-dashboard",
-					"app.kubernetes.io/managed-by": "db-saas",
-					"db-saas/type":                 "phpmyadmin",
-					"db-saas/user-id":              strconv.Itoa(dbRequest.UserID),
-				},
-			},
-			Spec: appsv1.DeploymentSpec{
-				Replicas: &replicas,
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app": dbRequest.Name + "-phpmyadmin",
-					},
-				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							"app": dbRequest.Name + "-phpmyadmin",
-						},
-					},
-					Spec: corev1.PodSpec{
-						Containers: []corev1.Container{
-							{
-								Name:  "phpmyadmin",
-								Image: "phpmyadmin:5.2",
-								Ports: []corev1.ContainerPort{{ContainerPort: 80}},
-								Env: []corev1.EnvVar{
-									{Name: "PMA_HOST", Value: dbRequest.Name},
-									{Name: "PMA_PORT", Value: "3306"},
-									{Name: "PMA_USER", Value: dbRequest.Username},
-									{Name: "PMA_PASSWORD", Value: dbRequest.Password},
-									{Name: "MYSQL_ROOT_PASSWORD", Value: dbRequest.Password},
-									// NO PMA_ABSOLUTE_URI needed with ReplacePathRegex approach!
-								},
-								Resources: corev1.ResourceRequirements{
-									Requests: corev1.ResourceList{
-										corev1.ResourceMemory: mustParseQuantity("128Mi"),
-										corev1.ResourceCPU:    mustParseQuantity("50m"),
-									},
-									Limits: corev1.ResourceList{
-										corev1.ResourceMemory: mustParseQuantity("256Mi"),
-										corev1.ResourceCPU:    mustParseQuantity("200m"),
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-	}
-*/
 func createPhpMyAdminService(dbRequest DatabaseRequest) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{

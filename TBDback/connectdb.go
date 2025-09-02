@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq" // PostgreSQL driver
@@ -189,5 +190,101 @@ func (c *DBClient) GetUserByID(id int) (*User, error) {
 	}
 
 	fmt.Printf("✅ Found user: %s %s (ID: %d)\n", user.FirstName, user.LastName, user.ID)
+	return &user, nil
+}
+
+// GetUserByUsername retrieves user by username
+func (c *DBClient) GetUserByUsername(username string) (*AuthUser, error) {
+	fmt.Printf("🔄 Looking up user: %s\n", username)
+
+	query := `
+	SELECT id, username, email, first_name, last_name, created_at
+	FROM auth_users
+	WHERE username = $1`
+
+	var user AuthUser
+	err := c.db.QueryRow(query, username).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.FirstName,
+		&user.LastName,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("user not found: %s", username)
+		}
+		return nil, fmt.Errorf("error getting user: %w", err)
+	}
+
+	fmt.Printf("✅ Found user: %s (ID: %d)\n", user.Username, user.ID)
+	return &user, nil
+}
+
+// CreateUserFromLDAP creates a user from LDAP information
+func (c *DBClient) CreateUserFromLDAP(ldapUser *struct {
+	DN        string `json:"dn"`
+	UID       string `json:"uid"`
+	Email     string `json:"email"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	UserType  string `json:"userType"`
+}) (*AuthUser, error) {
+	fmt.Printf("🔄 Creating user from LDAP: %s (%s)\n", ldapUser.UID, ldapUser.UserType)
+
+	// Use LDAP info to create user
+	email := ldapUser.Email
+	if email == "" {
+		// Generate email if not provided
+		domain := "dbsaas.local"
+		if ldapUser.UserType == "external" {
+			domain = "external.com"
+		}
+		email = fmt.Sprintf("%s@%s", ldapUser.UID, domain)
+	}
+
+	firstName := ldapUser.FirstName
+	lastName := ldapUser.LastName
+	if firstName == "" {
+		firstName = ldapUser.UID
+	}
+	if lastName == "" {
+		lastName = "User"
+	}
+
+	query := `
+	INSERT INTO auth_users (username, email, first_name, last_name, password_hash)
+	VALUES ($1, $2, $3, $4, $5)
+	RETURNING id, username, email, first_name, last_name, created_at`
+
+	var user AuthUser
+	err := c.db.QueryRow(
+		query,
+		ldapUser.UID,
+		email,
+		firstName,
+		lastName,
+		"ldap-managed", // Password placeholder for LDAP users
+	).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.FirstName,
+		&user.LastName,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		// Handle duplicate user gracefully
+		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			fmt.Printf("ℹ️  User already exists, fetching: %s\n", ldapUser.UID)
+			return c.GetUserByUsername(ldapUser.UID)
+		}
+		return nil, fmt.Errorf("error creating LDAP user: %w", err)
+	}
+
+	fmt.Printf("✅ LDAP user created: %s (ID: %d)\n", user.Username, user.ID)
 	return &user, nil
 }
