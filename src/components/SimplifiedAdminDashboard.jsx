@@ -1,4 +1,4 @@
-// src/components/SimplifiedAdminDashboard.js
+// src/components/SimplifiedAdminDashboard.jsx - Fixed import path and enhanced with LDAP info
 import React, { useState, useEffect } from 'react';
 import './AdminDashboard.css';
 
@@ -15,52 +15,70 @@ const SimplifiedAdminDashboard = () => {
     totalDatabases: 0,
     totalUsers: 0
   });
+  const [adminService, setAdminService] = useState(null);
 
-  // Load initial data with error handling
+  // Load admin service dynamically
   useEffect(() => {
-    loadNamespaces();
+    loadAdminService();
   }, []);
 
+  const loadAdminService = async () => {
+    try {
+      // Fixed import path
+      const module = await import('../services/adminService');
+      setAdminService(module.default);
+      console.log('Admin service loaded successfully');
+      loadNamespaces();
+    } catch (err) {
+      console.warn('Admin service not available, using fallback mode:', err.message);
+      // Use mock data if service is not available
+      loadMockData();
+    }
+  };
+
+  const loadMockData = () => {
+    const mockNamespaces = [
+      {
+        name: '1admin',
+        createdAt: new Date(),
+        databaseCount: 2,
+        status: 'Active'
+      },
+      {
+        name: '2john',
+        createdAt: new Date(),
+        databaseCount: 1,
+        status: 'Active'
+      }
+    ];
+    setNamespaces(mockNamespaces);
+    calculateStats(mockNamespaces);
+    setSuccess('Admin data loaded (demonstration mode)');
+  };
+
   const loadNamespaces = async () => {
+    if (!adminService) {
+      loadMockData();
+      return;
+    }
+
     try {
       setLoading(true);
       setError('');
       
-      // Try to import and use adminService, but fallback to mock data if it fails
-      try {
-        const adminService = await import('../../svc/services/adminService');
-        const response = await adminService.default.getAllNamespaces();
-        if (response && response.success) {
-          setNamespaces(response.namespaces || []);
-          calculateStats(response.namespaces || []);
-          setSuccess('Admin data loaded successfully');
-        } else {
-          throw new Error('Failed to load from service');
-        }
-      } catch (serviceError) {
-        console.warn('AdminService not available, using mock data:', serviceError.message);
-        // Use mock data instead
-        const mockNamespaces = [
-          {
-            name: 'user1-john',
-            createdAt: new Date(),
-            databaseCount: 2,
-            status: 'Active'
-          },
-          {
-            name: 'user2-jane',
-            createdAt: new Date(),
-            databaseCount: 1,
-            status: 'Active'
-          }
-        ];
-        setNamespaces(mockNamespaces);
-        calculateStats(mockNamespaces);
-        setSuccess('Admin data loaded (mock data)');
+      const response = await adminService.getAllNamespaces();
+      if (response && response.success) {
+        setNamespaces(response.namespaces || []);
+        calculateStats(response.namespaces || []);
+        setSuccess('Admin data loaded successfully via gRPC');
+      } else {
+        throw new Error('Failed to load from service');
       }
     } catch (err) {
       setError('Error loading admin data: ' + err.message);
       console.error('Error in loadNamespaces:', err);
+      // Fallback to mock data
+      loadMockData();
     } finally {
       setLoading(false);
     }
@@ -76,6 +94,24 @@ const SimplifiedAdminDashboard = () => {
   };
 
   const loadDatabasesForNamespace = async (namespace) => {
+    if (!adminService) {
+      // Mock data for demonstration
+      setDatabases([
+        {
+          name: 'test-db',
+          type: 'mysql',
+          status: 'running',
+          namespace: namespace,
+          userId: '1',
+          adminUrl: `http://10.9.21.201/${namespace}/test-db-phpmyadmin`,
+          adminType: 'phpMyAdmin',
+          createdAt: new Date()
+        }
+      ]);
+      setSelectedNamespace(namespace);
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await adminService.getUserDatabases(namespace);
@@ -92,6 +128,11 @@ const SimplifiedAdminDashboard = () => {
 
   const handleDeleteDatabase = async (namespace, dbName) => {
     if (!window.confirm(`Are you sure you want to delete database "${dbName}"?`)) {
+      return;
+    }
+
+    if (!adminService) {
+      setSuccess(`Database "${dbName}" would be deleted (demo mode)`);
       return;
     }
 
@@ -140,14 +181,26 @@ const SimplifiedAdminDashboard = () => {
     }
   };
 
+  // Get current user info to determine if they're an admin
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const userType = localStorage.getItem('userType');
+  const isLDAPAuth = localStorage.getItem('ldapAuth') === 'true';
+
   return (
     <div className="admin-dashboard">
       <div className="admin-header">
         <h1>🛠️ Admin Dashboard</h1>
         <div className="connection-status">
           <span className="status-indicator"></span>
-          gRPC Connected
+          {adminService ? 'gRPC Connected' : 'Demo Mode'}
         </div>
+      </div>
+
+      {/* User Info Bar */}
+      <div className="alert alert-info">
+        <strong>Logged in as:</strong> {currentUser.username} | 
+        <strong> Type:</strong> {userType || 'Unknown'} | 
+        <strong> Auth:</strong> {isLDAPAuth ? 'LDAP' : 'Local'}
       </div>
 
       {/* Messages */}
@@ -219,7 +272,7 @@ const SimplifiedAdminDashboard = () => {
             <div className="section-header">
               <h2>System Overview</h2>
               <button 
-                onClick={loadNamespaces} 
+                onClick={adminService ? loadNamespaces : loadMockData} 
                 className="btn btn-primary"
                 disabled={loading}
               >
@@ -263,7 +316,7 @@ const SimplifiedAdminDashboard = () => {
                     <div className="quick-action-text">View Databases</div>
                   </button>
                   <button 
-                    onClick={loadNamespaces}
+                    onClick={adminService ? loadNamespaces : loadMockData}
                     className="quick-action-btn"
                   >
                     <div className="quick-action-icon">🔄</div>
@@ -281,7 +334,7 @@ const SimplifiedAdminDashboard = () => {
             <div className="section-header">
               <h2>User Management ({namespaces.length} users)</h2>
               <button 
-                onClick={loadNamespaces} 
+                onClick={adminService ? loadNamespaces : loadMockData} 
                 className="btn btn-primary"
                 disabled={loading}
               >
@@ -371,7 +424,7 @@ const SimplifiedAdminDashboard = () => {
                     <div className="empty-icon">🗄️</div>
                     <h3>No Users Available</h3>
                     <p>Load user data first to view their databases.</p>
-                    <button onClick={loadNamespaces} className="btn btn-primary">
+                    <button onClick={adminService ? loadNamespaces : loadMockData} className="btn btn-primary">
                       Load Users
                     </button>
                   </div>

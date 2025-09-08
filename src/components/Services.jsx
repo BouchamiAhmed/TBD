@@ -1,7 +1,7 @@
+// src/components/Services.jsx - Enhanced with purple theme
 import React, { useState, useEffect } from 'react';
-import image from '../assets/img/image.png';
 
-const Services = (props) => {
+const Services = () => {
     const [deployStatus, setDeployStatus] = useState({
         isLoading: false,
         success: null,
@@ -19,13 +19,11 @@ const Services = (props) => {
         confirmPassword: ''
     });
 
-    // NEW: State for managing existing databases
     const [databases, setDatabases] = useState([]);
     const [loadingDatabases, setLoadingDatabases] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState({});
     const [showDatabasesList, setShowDatabasesList] = useState(false);
 
-    // Get current user from localStorage on component mount
     useEffect(() => {
         const userData = localStorage.getItem('user');
         if (userData) {
@@ -38,14 +36,12 @@ const Services = (props) => {
         }
     }, []);
 
-    // NEW: Load databases when user changes
     useEffect(() => {
         if (currentUser && showDatabasesList) {
             loadUserDatabases();
         }
     }, [currentUser, showDatabasesList]);
 
-    // NEW: Function to load user's databases
     const loadUserDatabases = async () => {
         if (!currentUser) return;
 
@@ -73,676 +69,563 @@ const Services = (props) => {
         }
     };
 
-    // NEW: Function to delete a database
-    const handleDeleteDatabase = async (database) => {
-        const confirmDelete = window.confirm(
-            `⚠️ DELETE DATABASE: "${database.name}"\n\n` +
-            `This action will permanently remove:\n` +
-            `• The ${database.type} database\n` +
-            `• The ${database.adminType} admin interface\n` +
-            `• All data and configurations\n` +
-            `• All associated Kubernetes resources\n\n` +
-            `This action CANNOT be undone!\n\n` +
-            `Type the database name to confirm: "${database.name}"`
-        );
+    const handleCreateDatabase = () => {
+        setShowDatabaseForm(true);
+        setShowDatabasesList(false);
+    };
 
-        if (!confirmDelete) return;
+    const handleManageDatabases = () => {
+        setShowDatabasesList(true);
+        setShowDatabaseForm(false);
+        loadUserDatabases();
+    };
 
-        // Additional confirmation by asking user to type database name
-        const userInput = window.prompt(
-            `To confirm deletion, please type the database name exactly:\n"${database.name}"`
-        );
+    const handleDatabaseTypeSelect = (type) => {
+        setSelectedDbType(type);
+        setDatabaseForm({
+            name: '',
+            username: '',
+            password: '',
+            confirmPassword: ''
+        });
+    };
 
-        if (userInput !== database.name) {
-            alert('Database name does not match. Deletion cancelled.');
-            return;
-        }
+    const handleFormChange = (e) => {
+        setDatabaseForm({
+            ...databaseForm,
+            [e.target.name]: e.target.value
+        });
+    };
 
-        const deleteKey = `${database.namespace}-${database.name}`;
-        setDeleteLoading(prev => ({ ...prev, [deleteKey]: true }));
-
-        try {
-            const response = await fetch(
-                `http://localhost:8080/api/databases/${database.namespace}/${database.name}`,
-                {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
-                    }
-                }
-            );
-
-            if (response.ok) {
-                // Remove from local state
-                setDatabases(prev => prev.filter(db => db.name !== database.name));
-                
-                setDeployStatus({
-                    isLoading: false,
-                    success: true,
-                    message: `Database "${database.name}" deleted successfully!`,
-                    deployment: null
-                });
-
-                console.log(`Database ${database.name} deleted successfully`);
-            } else {
-                const errorData = await response.text();
-                throw new Error(errorData || 'Failed to delete database');
-            }
-        } catch (error) {
-            console.error('Error deleting database:', error);
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        
+        if (databaseForm.password !== databaseForm.confirmPassword) {
             setDeployStatus({
                 isLoading: false,
                 success: false,
-                message: `Error deleting database: ${error.message}`,
+                message: 'Passwords do not match',
                 deployment: null
             });
-        } finally {
-            setDeleteLoading(prev => ({ ...prev, [deleteKey]: false }));
-        }
-    };
-
-    // Function to deploy a database
-    const handleDatabaseDeploy = async (dbType) => {
-        if (!currentUser) {
-            alert('Please log in first to deploy databases');
             return;
         }
 
-        if (!databaseForm.name || !databaseForm.username || !databaseForm.password) {
-            alert('Please fill in all database details');
-            return;
-        }
-
-        if (databaseForm.password !== databaseForm.confirmPassword) {
-            alert('Passwords do not match');
-            return;
-        }
-
-        setDeployStatus({
-            isLoading: true,
-            success: null,
-            message: `Creating ${dbType} database...`,
-            deployment: null
-        });
+        setDeployStatus({ isLoading: true, success: null, message: '', deployment: null });
 
         try {
-            const requestData = {
-                name: databaseForm.name,
-                username: databaseForm.username,
-                password: databaseForm.password,
-                type: dbType,
-                userId: currentUser.id,
-                userName: currentUser.username
-            };
-
-            console.log('Creating database:', requestData);
-
             const response = await fetch('http://localhost:8080/api/databases', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
                 },
-                body: JSON.stringify(requestData),
+                body: JSON.stringify({
+                    type: selectedDbType,
+                    name: databaseForm.name,
+                    username: databaseForm.username,
+                    password: databaseForm.password,
+                    namespace: `${currentUser.id}${currentUser.username}`
+                })
             });
 
-            const result = await response.json();
-            
             if (response.ok) {
+                const result = await response.json();
                 setDeployStatus({
                     isLoading: false,
                     success: true,
-                    message: `${dbType.toUpperCase()} database created successfully!`,
+                    message: `${selectedDbType} database "${databaseForm.name}" created successfully!`,
                     deployment: result
                 });
-
-                // Reset form
+                
                 setDatabaseForm({
                     name: '',
                     username: '',
                     password: '',
                     confirmPassword: ''
                 });
-                setShowDatabaseForm(false);
-                setSelectedDbType('');
-
-                // Refresh databases list if it's open
-                if (showDatabasesList) {
-                    setTimeout(() => loadUserDatabases(), 2000);
-                }
-
             } else {
-                throw new Error(result.message || 'Database creation failed');
+                const errorText = await response.text();
+                throw new Error(errorText || 'Failed to create database');
             }
         } catch (error) {
-            console.error('Error creating database:', error);
             setDeployStatus({
                 isLoading: false,
                 success: false,
-                message: `Error creating database: ${error.message}`,
+                message: error.message,
                 deployment: null
             });
         }
     };
 
-    const handleShowDatabaseForm = (dbType) => {
-        if (!currentUser) {
-            alert('Please log in first to deploy databases');
+    const handleDeleteDatabase = async (namespace, dbName) => {
+        if (!window.confirm(`Are you sure you want to delete "${dbName}"?`)) {
             return;
         }
-        setSelectedDbType(dbType);
-        setShowDatabaseForm(true);
+
+        setDeleteLoading({ ...deleteLoading, [dbName]: true });
+
+        try {
+            const response = await fetch(`http://localhost:8080/api/databases/${namespace}/${dbName}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
+                }
+            });
+
+            if (response.ok) {
+                loadUserDatabases();
+            } else {
+                alert('Failed to delete database');
+            }
+        } catch (error) {
+            console.error('Error deleting database:', error);
+            alert('Error deleting database');
+        } finally {
+            setDeleteLoading({ ...deleteLoading, [dbName]: false });
+        }
+    };
+
+    const clearStatus = () => {
         setDeployStatus({ isLoading: false, success: null, message: '', deployment: null });
     };
 
-    const handleFormChange = (field, value) => {
-        setDatabaseForm(prev => ({
-            ...prev,
-            [field]: value
-        }));
-    };
-
-    // Original button functionality preserved for compatibility
-    const handleOriginalDeploy = async (dbType) => {
-        if (!currentUser) {
-            alert('Please log in first');
-            return;
-        }
-
-        // Quick deploy with default values for testing
-        const quickDbConfig = {
-            name: `${dbType}-quick-${Date.now()}`,
-            username: 'testuser',
-            password: 'testpass123',
-            type: dbType,
-            userId: currentUser.id,
-            userName: currentUser.username
-        };
-
-        setDeployStatus({
-            isLoading: true,
-            success: null,
-            message: `Quick deploying ${dbType}...`,
-            deployment: null
-        });
-
-        try {
-            const response = await fetch('http://localhost:8080/api/databases', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
-                },
-                body: JSON.stringify(quickDbConfig),
-            });
-
-            const result = await response.json();
-            
-            setDeployStatus({
-                isLoading: false,
-                success: response.ok,
-                message: response.ok ? 
-                    `${dbType.toUpperCase()} database deployed successfully!` : 
-                    `Error: ${result.message}`,
-                deployment: response.ok ? result : null
-            });
-
-            // Refresh databases list if it's open
-            if (showDatabasesList && response.ok) {
-                setTimeout(() => loadUserDatabases(), 2000);
-            }
-        } catch (error) {
-            setDeployStatus({
-                isLoading: false,
-                success: false,
-                message: `Error: ${error.message}`,
-                deployment: null
-            });
+    const getDatabaseIcon = (type) => {
+        switch(type?.toLowerCase()) {
+            case 'mysql':
+                return 'fas fa-database text-warning';
+            case 'postgresql':
+                return 'fas fa-elephant text-info';
+            default:
+                return 'fas fa-database text-secondary';
         }
     };
 
-    // NEW: Function to get status badge color
-    const getStatusBadgeClass = (status) => {
-        switch (status) {
-            case 'running': return 'badge bg-success';
-            case 'creating': return 'badge bg-warning';
-            case 'error': return 'badge bg-danger';
-            default: return 'badge bg-secondary';
+    const getStatusBadge = (status) => {
+        switch(status?.toLowerCase()) {
+            case 'running':
+                return 'bg-success';
+            case 'pending':
+                return 'bg-warning';
+            case 'failed':
+                return 'bg-danger';
+            default:
+                return 'bg-secondary';
         }
     };
 
     return (
-        <div className="container-fluid">
-            {/* Header */}
-            <div className="row mb-4">
-                <div className="col-12">
-                    <div className="d-flex justify-content-between align-items-center">
-                        <h2>Database Services</h2>
-                        {/* NEW: Database Management Toggle */}
-                        {currentUser && (
+        <div className="min-vh-100" style={{ backgroundColor: '#f8f9fa' }}>
+            <div className="container py-5">
+                
+                {/* Header */}
+                <div className="row mb-5">
+                    <div className="col-12">
+                        <div className="text-center">
+                            <div className="d-inline-flex align-items-center justify-content-center mb-4" 
+                                 style={{
+                                     width: '80px', 
+                                     height: '80px', 
+                                     background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                                     borderRadius: '20px'
+                                 }}>
+                                <i className="fas fa-cogs fa-2x text-white"></i>
+                            </div>
+                            <h1 className="display-5 fw-bold text-dark mb-3">Database Services</h1>
+                            <p className="lead text-muted">Create and manage your database instances</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="row mb-5">
+                    <div className="col-12">
+                        <div className="d-flex flex-column flex-md-row gap-3 justify-content-center">
                             <button
-                                className={`btn ${showDatabasesList ? 'btn-outline-primary' : 'btn-primary'}`}
-                                onClick={() => {
-                                    setShowDatabasesList(!showDatabasesList);
-                                    if (!showDatabasesList) {
-                                        loadUserDatabases();
-                                    }
+                                onClick={handleCreateDatabase}
+                                className={`btn btn-lg px-5 py-3 fw-medium ${!showDatabaseForm ? 'text-white' : 'btn-outline-primary'}`}
+                                style={!showDatabaseForm ? {
+                                    background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                                    border: 'none',
+                                    borderRadius: '15px'
+                                } : {
+                                    borderColor: '#764ba2',
+                                    color: '#764ba2',
+                                    borderRadius: '15px'
                                 }}
                             >
-                                <i className={`fas ${showDatabasesList ? 'fa-plus' : 'fa-list'} me-2`}></i>
-                                {showDatabasesList ? 'Create New Database' : 'Manage My Databases'}
+                                <i className="fas fa-plus me-2"></i>
+                                Create New Database
                             </button>
-                        )}
+                            <button
+                                onClick={handleManageDatabases}
+                                className={`btn btn-lg px-5 py-3 fw-medium ${!showDatabasesList ? 'text-white' : 'btn-outline-success'}`}
+                                style={!showDatabasesList ? {
+                                    background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+                                    border: 'none',
+                                    borderRadius: '15px'
+                                } : {
+                                    borderColor: '#11998e',
+                                    color: '#11998e',
+                                    borderRadius: '15px'
+                                }}
+                            >
+                                <i className="fas fa-list me-2"></i>
+                                Manage Existing Databases
+                            </button>
+                        </div>
                     </div>
-                    
-                    {currentUser ? (
-                        <div className="alert alert-info">
-                            <i className="fas fa-user me-2"></i>
-                            <strong>Logged in as:</strong> {currentUser.firstName} {currentUser.lastName} (@{currentUser.username})
-                            <br />
-                            <i className="fas fa-cube me-2"></i>
-                            <strong>Your namespace:</strong> {currentUser.id}{currentUser.username}
-                        </div>
-                    ) : (
-                        <div className="alert alert-warning">
-                            <i className="fas fa-exclamation-triangle me-2"></i>
-                            <strong>Please log in</strong> to deploy databases to your personal namespace.
-                        </div>
-                    )}
                 </div>
-            </div>
 
-            <div className="row">
-                {/* NEW: Existing Databases Management Panel */}
-                {showDatabasesList && currentUser && (
-                    <div className="col-12 mb-4">
-                        <div className="card">
-                            <div className="card-header bg-warning text-dark">
-                                <h5 className="mb-0">
-                                    <i className="fas fa-database me-2"></i>
-                                    My Databases
-                                    <button 
-                                        className="btn btn-sm btn-outline-dark ms-2"
-                                        onClick={loadUserDatabases}
-                                        disabled={loadingDatabases}
-                                    >
-                                        <i className={`fas fa-sync-alt ${loadingDatabases ? 'fa-spin' : ''}`}></i>
-                                        {loadingDatabases ? ' Loading...' : ' Refresh'}
-                                    </button>
-                                </h5>
+                {/* Status Messages */}
+                {deployStatus.message && (
+                    <div className="row mb-4">
+                        <div className="col-12">
+                            <div className={`alert ${deployStatus.success ? 'alert-success' : 'alert-danger'} border-0 d-flex justify-content-between align-items-center`}
+                                 style={{ borderRadius: '15px' }}>
+                                <div className="d-flex align-items-center">
+                                    <i className={`fas ${deployStatus.success ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2`}></i>
+                                    {deployStatus.message}
+                                </div>
+                                <button onClick={clearStatus} className="btn-close" aria-label="Close"></button>
                             </div>
-                            <div className="card-body">
-                                {loadingDatabases ? (
-                                    <div className="text-center py-4">
-                                        <div className="spinner-border" role="status">
-                                            <span className="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Create Database Form */}
+                {showDatabaseForm && (
+                    <div className="row justify-content-center">
+                        <div className="col-lg-8">
+                            <div className="card border-0 shadow-sm" style={{ borderRadius: '20px' }}>
+                                <div className="card-header text-white py-4 border-0"
+                                     style={{
+                                         background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                                         borderRadius: '20px 20px 0 0'
+                                     }}>
+                                    <h3 className="mb-0 text-center">
+                                        <i className="fas fa-plus-circle me-2"></i>
+                                        Create New Database
+                                    </h3>
+                                </div>
+                                <div className="card-body p-5">
+                                    
+                                    {!selectedDbType ? (
+                                        <div>
+                                            <h5 className="mb-4 text-center">Select Database Type</h5>
+                                            <div className="row g-4">
+                                                <div className="col-md-6">
+                                                    <div 
+                                                        className="card h-100 border-0 shadow-sm cursor-pointer"
+                                                        style={{ borderRadius: '15px', cursor: 'pointer' }}
+                                                        onClick={() => handleDatabaseTypeSelect('mysql')}
+                                                    >
+                                                        <div className="card-body text-center p-4">
+                                                            <div className="mb-3">
+                                                                <i className="fas fa-database fa-3x text-warning"></i>
+                                                            </div>
+                                                            <h5 className="card-title">MySQL</h5>
+                                                            <p className="card-text text-muted">
+                                                                Popular open-source relational database
+                                                            </p>
+                                                            <div className="mt-3">
+                                                                <span className="badge bg-warning bg-opacity-10 text-warning me-2">Relational</span>
+                                                                <span className="badge bg-info bg-opacity-10 text-info">SQL</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="col-md-6">
+                                                    <div 
+                                                        className="card h-100 border-0 shadow-sm cursor-pointer"
+                                                        style={{ borderRadius: '15px', cursor: 'pointer' }}
+                                                        onClick={() => handleDatabaseTypeSelect('postgresql')}
+                                                    >
+                                                        <div className="card-body text-center p-4">
+                                                            <div className="mb-3">
+                                                                <i className="fas fa-elephant fa-3x text-info"></i>
+                                                            </div>
+                                                            <h5 className="card-title">PostgreSQL</h5>
+                                                            <p className="card-text text-muted">
+                                                                Advanced open-source relational database
+                                                            </p>
+                                                            <div className="mt-3">
+                                                                <span className="badge bg-info bg-opacity-10 text-info me-2">Relational</span>
+                                                                <span className="badge bg-success bg-opacity-10 text-success">Advanced</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="mt-2">Loading your databases...</div>
-                                    </div>
-                                ) : databases.length === 0 ? (
-                                    <div className="text-center py-4 text-muted">
-                                        <i className="fas fa-database fa-3x mb-3"></i>
-                                        <h5>No databases found</h5>
-                                        <p>Create your first database using the options below.</p>
-                                    </div>
-                                ) : (
-                                    <div className="row">
-                                        {databases.map(database => {
-                                            const deleteKey = `${database.namespace}-${database.name}`;
-                                            const isDeleting = deleteLoading[deleteKey];
-                                            
-                                            return (
-                                                <div key={database.name} className="col-md-6 col-lg-4 mb-3">
-                                                    <div className="card h-100 border-start border-4 border-primary">
-                                                        <div className="card-body">
-                                                            <div className="d-flex justify-content-between align-items-start mb-2">
-                                                                <h6 className="card-title mb-1">
-                                                                    <i className={`fas ${database.type === 'mysql' ? 'fa-leaf' : 'fa-elephant'} me-2`}></i>
-                                                                    {database.name}
-                                                                </h6>
-                                                                <span className={getStatusBadgeClass(database.status)}>
-                                                                    {database.status}
+                                    ) : (
+                                        <div>
+                                            <div className="d-flex justify-content-between align-items-center mb-4">
+                                                <h5 className="mb-0">
+                                                    <i className={getDatabaseIcon(selectedDbType)} me-2></i>
+                                                    Configure {selectedDbType.toUpperCase()} Database
+                                                </h5>
+                                                <button 
+                                                    onClick={() => setSelectedDbType('')}
+                                                    className="btn btn-outline-secondary btn-sm"
+                                                    style={{ borderRadius: '10px' }}
+                                                >
+                                                    <i className="fas fa-arrow-left me-1"></i>
+                                                    Back
+                                                </button>
+                                            </div>
+
+                                            <form onSubmit={handleFormSubmit}>
+                                                <div className="row g-3">
+                                                    <div className="col-md-6">
+                                                        <label className="form-label fw-medium">Database Name</label>
+                                                        <input
+                                                            type="text"
+                                                            className="form-control py-3"
+                                                            style={{ borderRadius: '12px' }}
+                                                            name="name"
+                                                            value={databaseForm.name}
+                                                            onChange={handleFormChange}
+                                                            placeholder="my-database"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <label className="form-label fw-medium">Username</label>
+                                                        <input
+                                                            type="text"
+                                                            className="form-control py-3"
+                                                            style={{ borderRadius: '12px' }}
+                                                            name="username"
+                                                            value={databaseForm.username}
+                                                            onChange={handleFormChange}
+                                                            placeholder="dbuser"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <label className="form-label fw-medium">Password</label>
+                                                        <input
+                                                            type="password"
+                                                            className="form-control py-3"
+                                                            style={{ borderRadius: '12px' }}
+                                                            name="password"
+                                                            value={databaseForm.password}
+                                                            onChange={handleFormChange}
+                                                            placeholder="••••••••"
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <label className="form-label fw-medium">Confirm Password</label>
+                                                        <input
+                                                            type="password"
+                                                            className="form-control py-3"
+                                                            style={{ borderRadius: '12px' }}
+                                                            name="confirmPassword"
+                                                            value={databaseForm.confirmPassword}
+                                                            onChange={handleFormChange}
+                                                            placeholder="••••••••"
+                                                            required
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-4 pt-3 d-flex gap-3">
+                                                    <button
+                                                        type="submit"
+                                                        disabled={deployStatus.isLoading}
+                                                        className="btn text-white px-4 py-3 fw-medium flex-grow-1"
+                                                        style={{
+                                                            background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                                                            border: 'none',
+                                                            borderRadius: '12px'
+                                                        }}
+                                                    >
+                                                        {deployStatus.isLoading ? (
+                                                            <>
+                                                                <span className="spinner-border spinner-border-sm me-2"></span>
+                                                                Creating...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <i className="fas fa-rocket me-2"></i>
+                                                                Create Database
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Manage Databases List */}
+                {showDatabasesList && (
+                    <div className="row">
+                        <div className="col-12">
+                            <div className="card border-0 shadow-sm" style={{ borderRadius: '20px' }}>
+                                <div className="card-header text-white py-4 border-0"
+                                     style={{
+                                         background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+                                         borderRadius: '20px 20px 0 0'
+                                     }}>
+                                    <h3 className="mb-0 text-center">
+                                        <i className="fas fa-list me-2"></i>
+                                        Your Databases
+                                    </h3>
+                                </div>
+                                <div className="card-body p-4">
+                                    {loadingDatabases ? (
+                                        <div className="text-center py-5">
+                                            <div className="spinner-border text-primary" style={{ width: '3rem', height: '3rem' }}>
+                                                <span className="visually-hidden">Loading...</span>
+                                            </div>
+                                            <p className="mt-3 text-muted">Loading your databases...</p>
+                                        </div>
+                                    ) : databases.length === 0 ? (
+                                        <div className="text-center py-5">
+                                            <div className="mb-4">
+                                                <i className="fas fa-database fa-4x text-muted opacity-50"></i>
+                                            </div>
+                                            <h5 className="text-muted">No databases found</h5>
+                                            <p className="text-muted">Create your first database to get started.</p>
+                                            <button
+                                                onClick={handleCreateDatabase}
+                                                className="btn text-white px-4 py-2"
+                                                style={{
+                                                    background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                                                    border: 'none',
+                                                    borderRadius: '12px'
+                                                }}
+                                            >
+                                                <i className="fas fa-plus me-2"></i>
+                                                Create Database
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="row g-4">
+                                            {databases.map((db, index) => (
+                                                <div key={index} className="col-lg-6 col-xl-4">
+                                                    <div className="card h-100 border-0 shadow-sm" style={{ borderRadius: '15px' }}>
+                                                        <div className="card-body p-4">
+                                                            <div className="d-flex justify-content-between align-items-start mb-3">
+                                                                <div className="d-flex align-items-center">
+                                                                    <div className="me-3">
+                                                                        <i className={getDatabaseIcon(db.type)} style={{ fontSize: '1.5rem' }}></i>
+                                                                    </div>
+                                                                    <div>
+                                                                        <h6 className="mb-1 fw-bold">{db.name}</h6>
+                                                                        <small className="text-muted">{db.type?.toUpperCase()}</small>
+                                                                    </div>
+                                                                </div>
+                                                                <span className={`badge ${getStatusBadge(db.status)} px-2 py-1`}>
+                                                                    {db.status || 'Unknown'}
                                                                 </span>
                                                             </div>
-                                                            
-                                                            <div className="small text-muted mb-3">
-                                                                <div><strong>Type:</strong> {database.type?.toUpperCase()}</div>
-                                                                <div><strong>Admin:</strong> {database.adminType}</div>
-                                                                <div><strong>Created:</strong> {new Date(database.createdAt).toLocaleDateString()}</div>
+
+                                                            <div className="mb-3">
+                                                                <small className="text-muted d-block">Namespace: {db.namespace}</small>
+                                                                <small className="text-muted d-block">Created: {new Date(db.createdAt).toLocaleDateString()}</small>
                                                             </div>
 
-                                                            <div className="d-grid gap-2">
-                                                                {database.adminUrl && (
-                                                                    <a 
-                                                                        href={database.adminUrl} 
-                                                                        target="_blank" 
+                                                            <div className="d-flex gap-2">
+                                                                {db.adminUrl && (
+                                                                    <a
+                                                                        href={db.adminUrl}
+                                                                        target="_blank"
                                                                         rel="noopener noreferrer"
-                                                                        className="btn btn-outline-primary btn-sm"
+                                                                        className="btn btn-outline-primary btn-sm flex-grow-1"
+                                                                        style={{ borderRadius: '8px' }}
                                                                     >
-                                                                        <i className="fas fa-external-link-alt me-2"></i>
-                                                                        Open {database.adminType}
+                                                                        <i className="fas fa-external-link-alt me-1"></i>
+                                                                        Manage
                                                                     </a>
                                                                 )}
-                                                                
                                                                 <button
+                                                                    onClick={() => handleDeleteDatabase(db.namespace, db.name)}
+                                                                    disabled={deleteLoading[db.name]}
                                                                     className="btn btn-outline-danger btn-sm"
-                                                                    onClick={() => handleDeleteDatabase(database)}
-                                                                    disabled={isDeleting}
+                                                                    style={{ borderRadius: '8px' }}
                                                                 >
-                                                                    {isDeleting ? (
-                                                                        <>
-                                                                            <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                                                                            Deleting...
-                                                                        </>
+                                                                    {deleteLoading[db.name] ? (
+                                                                        <span className="spinner-border spinner-border-sm"></span>
                                                                     ) : (
-                                                                        <>
-                                                                            <i className="fas fa-trash me-2"></i>
-                                                                            Delete Database
-                                                                        </>
+                                                                        <i className="fas fa-trash"></i>
                                                                     )}
                                                                 </button>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Main Content - Only show when not in databases list mode */}
-                <div className={showDatabaseForm ? "col-md-8" : (!showDatabasesList ? "col-12" : "col-12")}>
-                    {!showDatabasesList && (
-                        <>
-                            {/* Quick Deploy Buttons (Original Style) */}
-                            <div className="card mb-4">
-                                <div className="card-header bg-success text-white">
-                                    <h5 className="mb-0">
-                                        <i className="fas fa-rocket me-2"></i>
-                                        Quick Deploy (Test Databases)
-                                    </h5>
-                                </div>
-                                <div className="card-body">
-                                    <p>Deploy databases quickly with default test credentials for rapid prototyping.</p>
-                                    <div className="d-flex flex-wrap gap-3 mb-3">
-                                        <button 
-                                            className="btn btn-primary btn-icon-split"
-                                            onClick={() => handleOriginalDeploy('mysql')}
-                                            disabled={deployStatus.isLoading}
-                                        >
-                                            <span className="icon text-white-50">
-                                                <img src={image} width={15} height={16} alt="MySQL icon" />
-                                            </span>
-                                            <span className="text">MySQL</span>
-                                        </button>
-                                        
-                                        <button 
-                                            className="btn btn-secondary btn-icon-split"
-                                            onClick={() => handleOriginalDeploy('postgres')}
-                                            disabled={deployStatus.isLoading}
-                                        >
-                                            <span className="icon text-white-50">
-                                                <img src={image} width={15} height={16} alt="PostgreSQL icon" />
-                                            </span>
-                                            <span className="text">PostgreSQL</span>
-                                        </button>
-                                    </div>
-                                    <small className="text-muted">
-                                        <i className="fas fa-info-circle me-1"></i>
-                                        Default credentials: username 'testuser', password 'testpass123'
-                                    </small>
-                                </div>
-                            </div>
-
-                            {/* Custom Deploy Buttons */}
-                            <div className="card mb-4">
-                                <div className="card-header bg-primary text-white">
-                                    <h5 className="mb-0">
-                                        <i className="fas fa-cogs me-2"></i>
-                                        Custom Database Configuration
-                                    </h5>
-                                </div>
-                                <div className="card-body">
-                                    <p>Create databases with custom names, users, and passwords for production use.</p>
-                                    <div className="d-flex flex-wrap gap-3">
-                                        <button 
-                                            className="btn btn-success btn-icon-split"
-                                            onClick={() => handleShowDatabaseForm('mysql')}
-                                            disabled={deployStatus.isLoading}
-                                        >
-                                            <span className="icon text-white-50">
-                                                <i className="fas fa-plus"></i>
-                                            </span>
-                                            <span className="text">Configure MySQL</span>
-                                        </button>
-                                        
-                                        <button 
-                                            className="btn btn-info btn-icon-split"
-                                            onClick={() => handleShowDatabaseForm('postgres')}
-                                            disabled={deployStatus.isLoading}
-                                        >
-                                            <span className="icon text-white-50">
-                                                <i className="fas fa-plus"></i>
-                                            </span>
-                                            <span className="text">Configure PostgreSQL</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-                    {/* Status Display */}
-                    {deployStatus.message && (
-                        <div className={`alert ${
-                            deployStatus.success === true ? 'alert-success' : 
-                            deployStatus.success === false ? 'alert-danger' : 
-                            'alert-info'
-                        }`}>
-                            <div className="d-flex align-items-center">
-                                {deployStatus.isLoading && (
-                                    <div className="spinner-border spinner-border-sm me-2" role="status">
-                                        <span className="visually-hidden">Loading...</span>
-                                    </div>
-                                )}
-                                <div className="flex-grow-1">
-                                    <strong>{deployStatus.message}</strong>
-                                    {deployStatus.deployment && (
-                                        <div className="mt-2">
-                                            <div><strong>Service:</strong> {deployStatus.deployment.name}</div>
-                                            <div><strong>Host:</strong> {deployStatus.deployment.host}</div>
-                                            <div><strong>Port:</strong> {deployStatus.deployment.port}</div>
-                                            <div><strong>Username:</strong> {deployStatus.deployment.username}</div>
-                                            <div><strong>Namespace:</strong> {deployStatus.deployment.namespace}</div>
-                                            <div><strong>Type:</strong> {deployStatus.deployment.type?.toUpperCase()}</div>
-                                            {deployStatus.deployment.adminUrl && (
-                                                <div>
-                                                    <strong>Admin URL:</strong> 
-                                                    <a href={deployStatus.deployment.adminUrl} target="_blank" rel="noopener noreferrer" className="ms-2">
-                                                        {deployStatus.deployment.adminUrl}
-                                                        <i className="fas fa-external-link-alt ms-1"></i>
-                                                    </a>
-                                                </div>
-                                            )}
+                                            ))}
                                         </div>
                                     )}
                                 </div>
                             </div>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {/* Information - Only show when not in databases list mode */}
-                    {!showDatabasesList && (
-                        <div className="card">
-                            <div className="card-header">
-                                <h5>
-                                    <i className="fas fa-info-circle me-2"></i>
-                                    Deployment Information
-                                </h5>
-                            </div>
-                            <div className="card-body">
-                                <div className="row">
-                                    <div className="col-md-6">
-                                        <h6>What gets deployed:</h6>
-                                        <ul>
-                                            <li>Dedicated database pod in your namespace</li>
-                                            <li>Admin interface (phpMyAdmin/pgAdmin)</li>
-                                            <li>LoadBalancer services for external access</li>
-                                            <li>Traefik routing for path-based access</li>
-                                            <li>Configured authentication credentials</li>
-                                            <li>Resource limits for performance optimization</li>
-                                        </ul>
+                {/* Welcome Message */}
+                {!showDatabaseForm && !showDatabasesList && (
+                    <div className="row justify-content-center">
+                        <div className="col-lg-8">
+                            <div className="card border-0 shadow-sm" style={{ borderRadius: '20px' }}>
+                                <div className="card-body text-center p-5">
+                                    <div className="mb-4">
+                                        <i className="fas fa-rocket fa-4x text-primary opacity-75"></i>
                                     </div>
-                                    <div className="col-md-6">
-                                        <h6>Connection format:</h6>
-                                        <ul>
-                                            <li><strong>Host:</strong> {`{db-name}.{namespace}.svc.cluster.local`}</li>
-                                            <li><strong>MySQL Port:</strong> 3306</li>
-                                            <li><strong>PostgreSQL Port:</strong> 5432</li>
-                                            <li><strong>Your Namespace:</strong> {currentUser ? `${currentUser.id}${currentUser.username}` : 'Please log in'}</li>
-                                            <li><strong>Admin Access:</strong> http://10.9.21.201/{`{namespace}/{service}`}</li>
-                                        </ul>
+                                    <h3 className="mb-3">Ready to Deploy?</h3>
+                                    <p className="text-muted mb-4">
+                                        Choose an option above to create a new database or manage your existing ones.
+                                        Our platform supports MySQL and PostgreSQL with automated deployment and management.
+                                    </p>
+                                    <div className="row g-3 text-start">
+                                        <div className="col-md-6">
+                                            <div className="d-flex align-items-start">
+                                                <i className="fas fa-check-circle text-success me-2 mt-1"></i>
+                                                <div>
+                                                    <strong>Auto Deployment</strong>
+                                                    <br />
+                                                    <small className="text-muted">Automatic Kubernetes deployment</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-6">
+                                            <div className="d-flex align-items-start">
+                                                <i className="fas fa-check-circle text-success me-2 mt-1"></i>
+                                                <div>
+                                                    <strong>Admin Tools</strong>
+                                                    <br />
+                                                    <small className="text-muted">phpMyAdmin & pgAdmin included</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-6">
+                                            <div className="d-flex align-items-start">
+                                                <i className="fas fa-check-circle text-success me-2 mt-1"></i>
+                                                <div>
+                                                    <strong>Isolated Namespaces</strong>
+                                                    <br />
+                                                    <small className="text-muted">Secure multi-tenant architecture</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-6">
+                                            <div className="d-flex align-items-start">
+                                                <i className="fas fa-check-circle text-success me-2 mt-1"></i>
+                                                <div>
+                                                    <strong>Easy Management</strong>
+                                                    <br />
+                                                    <small className="text-muted">Simple web-based interface</small>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Database Configuration Form */}
-                {showDatabaseForm && (
-                    <div className="col-md-4">
-                        <div className="card sticky-top">
-                            <div className="card-header bg-primary text-white">
-                                <h5 className="mb-0">
-                                    <i className="fas fa-database me-2"></i>
-                                    Configure {selectedDbType?.toUpperCase()} Database
-                                    <button 
-                                        type="button" 
-                                        className="btn-close btn-close-white float-end"
-                                        onClick={() => setShowDatabaseForm(false)}
-                                    ></button>
-                                </h5>
-                            </div>
-                            <div className="card-body">
-                                <form onSubmit={(e) => {
-                                    e.preventDefault();
-                                    handleDatabaseDeploy(selectedDbType);
-                                }}>
-                                    <div className="mb-3">
-                                        <label htmlFor="dbName" className="form-label">
-                                            <i className="fas fa-tag me-1"></i>Database Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            id="dbName"
-                                            value={databaseForm.name}
-                                            onChange={(e) => handleFormChange('name', e.target.value)}
-                                            placeholder="e.g., myapp-db"
-                                            pattern="[a-z0-9-]+"
-                                            title="Only lowercase letters, numbers, and hyphens allowed"
-                                            required
-                                        />
-                                        <small className="form-text text-muted">
-                                            Only lowercase letters, numbers, and hyphens
-                                        </small>
-                                    </div>
-                                    
-                                    <div className="mb-3">
-                                        <label htmlFor="dbUsername" className="form-label">
-                                            <i className="fas fa-user me-1"></i>Database Username
-                                        </label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            id="dbUsername"
-                                            value={databaseForm.username}
-                                            onChange={(e) => handleFormChange('username', e.target.value)}
-                                            placeholder="Database user"
-                                            required
-                                        />
-                                    </div>
-                                    
-                                    <div className="mb-3">
-                                        <label htmlFor="dbPassword" className="form-label">
-                                            <i className="fas fa-lock me-1"></i>Database Password
-                                        </label>
-                                        <input
-                                            type="password"
-                                            className="form-control"
-                                            id="dbPassword"
-                                            value={databaseForm.password}
-                                            onChange={(e) => handleFormChange('password', e.target.value)}
-                                            placeholder="Strong password"
-                                            minLength="6"
-                                            required
-                                        />
-                                    </div>
-                                    
-                                    <div className="mb-3">
-                                        <label htmlFor="dbConfirmPassword" className="form-label">
-                                            <i className="fas fa-lock me-1"></i>Confirm Password
-                                        </label>
-                                        <input
-                                            type="password"
-                                            className="form-control"
-                                            id="dbConfirmPassword"
-                                            value={databaseForm.confirmPassword}
-                                            onChange={(e) => handleFormChange('confirmPassword', e.target.value)}
-                                            placeholder="Confirm password"
-                                            required
-                                        />
-                                    </div>
-                                    
-                                    <div className="d-grid gap-2">
-                                        <button 
-                                            type="submit" 
-                                            className="btn btn-primary"
-                                            disabled={deployStatus.isLoading}
-                                        >
-                                            {deployStatus.isLoading ? (
-                                                <>
-                                                    <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                                                    Creating...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <i className="fas fa-rocket me-2"></i>
-                                                    Create {selectedDbType?.toUpperCase()} Database
-                                                </>
-                                            )}
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            className="btn btn-secondary"
-                                            onClick={() => setShowDatabaseForm(false)}
-                                        >
-                                            <i className="fas fa-times me-2"></i>Cancel
-                                        </button>
-                                    </div>
-                                </form>
-                                
-                                <div className="alert alert-info" role="alert">
-                                    <i className="fas fa-server me-2"></i>
-                                    <strong>REST API:</strong> Database creation uses the proven TBDback REST backend. Management (view/delete) supports both REST and gRPC microservice backends. Switch above to try gRPC!
-                                </div>
-
-                                <hr className="mt-4" />
-                                <div className="small text-muted">
-                                    <h6>Database will be created with:</h6>
-                                    <ul className="mb-0">
-                                        <li>Resource limits: 256Mi-512Mi RAM</li>
-                                        <li>CPU limits: 100m-500m cores</li>
-                                        <li>LoadBalancer service on ports 8080/8081</li>
-                                        <li>Traefik routing for web access</li>
-                                        <li>Persistent storage (future feature)</li>
-                                        <li>Automatic backup (future feature)</li>
-                                    </ul>
                                 </div>
                             </div>
                         </div>

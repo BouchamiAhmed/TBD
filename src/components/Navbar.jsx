@@ -1,208 +1,309 @@
-import { Link } from "react-router-dom";
+// src/components/Navbar.jsx - Complete with activeNav state
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
-const Navbar = (props) => {
+const Navbar = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [userType, setUserType] = useState(null);
+  const [isLDAPAuth, setIsLDAPAuth] = useState(false);
+  const [activeNav, setActiveNav] = useState('dashboard');
+  const navigate = useNavigate();
+  const location = useLocation();
 
-    //  <nav>
-    //    <ul>
-    //     <li>
-    //        <Link to="/">Home</Link>
-    //   </li>
-    //      <li>
-    //        <Link to="/about">About</Link>
-    //     </li>
-    //     <li>
-    //        <Link to="/contact">Contact</Link>
-    //      </li>
-    //    </ul>
-    //  </nav>
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+      const storedUserType = localStorage.getItem('userType');
+      const ldapAuth = localStorage.getItem('ldapAuth') === 'true';
 
-    return ( 
-    <div>
-    <nav className="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-  {/* Sidebar Toggle (Topbar) */}
-  <button id="sidebarToggleTop" className="btn btn-link d-md-none rounded-circle mr-3">
-    <i className="fa fa-bars" />
-  </button>
-  {/* Topbar Search */}
-  <form className="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
-    <div className="input-group">
-      <input type="text" className="form-control bg-light border-0 small" placeholder="Search for..." aria-label="Search" aria-describedby="basic-addon2" />
-      <div className="input-group-append">
-        <button className="btn btn-primary" type="button">
-        <i class="fa fa-search"></i>
+      if (token && userData) {
+        setIsAuthenticated(true);
+        try {
+          setUser(JSON.parse(userData));
+          setUserType(storedUserType);
+          setIsLDAPAuth(ldapAuth);
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          handleLogout();
+        }
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
+        setUserType(null);
+        setIsLDAPAuth(false);
+      }
+    };
+
+    checkAuth();
+    
+    // Listen for storage changes and custom refresh events
+    window.addEventListener('storage', checkAuth);
+    window.addEventListener('refreshNavbar', checkAuth);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      window.removeEventListener('refreshNavbar', checkAuth);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('ldapAuth');
+    setIsAuthenticated(false);
+    setUser(null);
+    setUserType(null);
+    setIsLDAPAuth(false);
+    navigate('/login');
+  };
+
+  const isAdmin = () => {
+    return user && (
+      userType === 'internal' ||
+      user.username === 'admin' || 
+      user.email?.includes('admin') ||
+      user.id === 1
+    );
+  };
+
+  const isActive = (path) => location.pathname === path;
+
+  return (
+    <nav className="navbar navbar-expand-lg shadow-sm" 
+         style={{
+           background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)'
+         }}>
+      <div className="container">
+        {/* Logo */}
+        <Link className="navbar-brand d-flex align-items-center text-white fw-bold" to="/">
+          <div className="d-inline-flex align-items-center justify-content-center me-3" 
+               style={{
+                 width: '40px', 
+                 height: '40px', 
+                 backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                 borderRadius: '10px'
+               }}>
+            <i className="fas fa-database"></i>
+          </div>
+          <span className="fs-4">TBDplatform</span>
+        </Link>
+
+        {/* Mobile toggle */}
+        <button 
+          className="navbar-toggler border-0" 
+          type="button" 
+          data-bs-toggle="collapse" 
+          data-bs-target="#navbarNav"
+          style={{ color: 'rgba(255, 255, 255, 0.8)' }}
+        >
+          <i className="fas fa-bars"></i>
         </button>
+
+        <div className="collapse navbar-collapse" id="navbarNav">
+          {/* Main Navigation */}
+          <ul className="navbar-nav me-auto">
+            {isAuthenticated && !isActive('/login') && !isActive('/register') && (
+              <>
+                <li className="nav-item">
+                  <Link 
+                    className={`nav-link px-3 py-2 rounded ${activeNav === 'dashboard' ? 'bg-white bg-opacity-20' : 'text-white'}`}
+                    style={activeNav === 'dashboard' ? { color: '#764ba2' } : { color: 'white' }}
+                    to="/dashboard"
+                    onClick={() => setActiveNav('dashboard')}
+                  >
+                    <i className="fas fa-tachometer-alt me-2"></i>
+                    Dashboard
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link 
+                    className={`nav-link px-3 py-2 rounded ${activeNav === 'services' ? 'bg-white bg-opacity-20' : 'text-white'}`}
+                    style={activeNav === 'services' ? { color: '#764ba2' } : { color: 'white' }}
+                    to="/services"
+                    onClick={() => setActiveNav('services')}
+                  >
+                    <i className="fas fa-cogs me-2"></i>
+                    Services
+                  </Link>
+                </li>
+                {isAdmin() && (
+                  <li className="nav-item">
+                    <Link 
+                      className={`nav-link px-3 py-2 rounded position-relative ${activeNav === 'admin' ? 'bg-white bg-opacity-20' : 'text-white'}`}
+                      style={activeNav === 'admin' ? { color: '#764ba2' } : { color: 'white' }}
+                      to="/admin"
+                      onClick={() => setActiveNav('admin')}
+                    >
+                      <i className="fas fa-user-shield me-2"></i>
+                      Admin Panel
+                      <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        <i className="fas fa-crown" style={{ fontSize: '8px' }}></i>
+                      </span>
+                    </Link>
+                  </li>
+                )}
+              </>
+            )}
+          </ul>
+
+          {/* User Menu */}
+          <ul className="navbar-nav">
+            {isAuthenticated ? (
+              <li className="nav-item dropdown">
+                <a
+                  className="nav-link dropdown-toggle text-white d-flex align-items-center px-3 py-2"
+                  href="#"
+                  id="navbarDropdown"
+                  role="button"
+                  data-bs-toggle="dropdown"
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    borderRadius: '10px'
+                  }}
+                >
+                  <div className="d-inline-flex align-items-center justify-content-center me-2" 
+                       style={{
+                         width: '32px', 
+                         height: '32px', 
+                         backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                         borderRadius: '50%'
+                       }}>
+                    <span className="small fw-bold">
+                      {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                    </span>
+                  </div>
+                  <div className="text-start d-none d-md-block">
+                    <div className="small fw-medium">{user?.firstName} {user?.lastName}</div>
+                    <div className="d-flex gap-1">
+                      <span className={`badge ${
+                        userType === 'internal' 
+                          ? 'bg-danger bg-opacity-75' 
+                          : 'bg-primary bg-opacity-75'
+                      }`} style={{ fontSize: '9px' }}>
+                        {userType === 'internal' ? 'Admin' : userType === 'external' ? 'User' : 'Local'}
+                      </span>
+                      <span className={`badge ${
+                        isLDAPAuth 
+                          ? 'bg-success bg-opacity-75' 
+                          : 'bg-secondary bg-opacity-75'
+                      }`} style={{ fontSize: '9px' }}>
+                        {isLDAPAuth ? 'LDAP' : 'Local'}
+                      </span>
+                    </div>
+                  </div>
+                </a>
+
+                {/* Dropdown Menu */}
+                <ul className="dropdown-menu dropdown-menu-end shadow border-0" 
+                    style={{ borderRadius: '15px', minWidth: '300px' }}>
+                  {/* User Info Header */}
+                  <li className="px-3 py-2 border-bottom">
+                    <div className="d-flex align-items-center">
+                      <div className="d-inline-flex align-items-center justify-content-center me-3" 
+                           style={{
+                             width: '40px', 
+                             height: '40px', 
+                             background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                             borderRadius: '10px'
+                           }}>
+                        <span className="text-white fw-bold">
+                          {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="fw-medium">@{user?.username}</div>
+                        <small className="text-muted">{user?.email}</small>
+                      </div>
+                    </div>
+                  </li>
+
+                  {/* User Details */}
+                  <li className="px-3 py-2 bg-light">
+                    <div className="row g-1 small">
+                      <div className="col-5 text-muted">Authentication:</div>
+                      <div className="col-7">{isLDAPAuth ? 'LDAP Directory' : 'Local Database'}</div>
+                      
+                      <div className="col-5 text-muted">User Type:</div>
+                      <div className="col-7">
+                        {userType === 'internal' ? 'Internal (Admin)' : userType === 'external' ? 'External (Client)' : 'Local User'}
+                      </div>
+                      
+                      <div className="col-5 text-muted">Namespace:</div>
+                      <div className="col-7">
+                        <code className="small">{user?.id}{user?.username}</code>
+                      </div>
+                    </div>
+                  </li>
+
+                  {/* Menu Items */}
+                  <li>
+                    <Link 
+                      className="dropdown-item py-2" 
+                      to="/dashboard"
+                      onClick={() => setActiveNav('dashboard')}
+                    >
+                      <i className="fas fa-user-circle me-2"></i>
+                      Profile Settings
+                    </Link>
+                  </li>
+                  
+                  {isAdmin() && (
+                    <li>
+                      <Link 
+                        className="dropdown-item py-2" 
+                        to="/admin"
+                        onClick={() => setActiveNav('admin')}
+                      >
+                        <i className="fas fa-user-shield me-2"></i>
+                        Admin Dashboard
+                      </Link>
+                    </li>
+                  )}
+
+                  <li><hr className="dropdown-divider" /></li>
+                  
+                  <li>
+                    <button
+                      className="dropdown-item py-2 text-danger"
+                      onClick={handleLogout}
+                    >
+                      <i className="fas fa-sign-out-alt me-2"></i>
+                      Sign out
+                    </button>
+                  </li>
+                </ul>
+              </li>
+            ) : (
+              <>
+                <li className="nav-item">
+                  <Link 
+                    className={`nav-link text-white px-3 py-2 rounded ${isActive('/login') ? 'bg-white bg-opacity-20' : ''}`}
+                    to="/login"
+                  >
+                    <i className="fas fa-sign-in-alt me-2"></i>
+                    Sign In
+                  </Link>
+                </li>
+                <li className="nav-item ms-2">
+                  <Link 
+                    className="btn btn-light px-3 py-2"
+                    style={{ borderRadius: '10px' }}
+                    to="/register"
+                  >
+                    <i className="fas fa-user-plus me-2"></i>
+                    Sign Up
+                  </Link>
+                </li>
+              </>
+            )}
+          </ul>
+        </div>
       </div>
-    </div>
-  </form>
-  {/* Topbar Navbar */}
-  <ul className="navbar-nav ml-auto">
-    {/* Nav Item - Search Dropdown (Visible Only XS) */}
-    <li className="nav-item dropdown no-arrow d-sm-none">
-      <a className="nav-link dropdown-toggle" href="#" id="searchDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        <i className="fas fa-search fa-fw" />
-      </a>
-      {/* Dropdown - Messages */}
-      <div className="dropdown-menu dropdown-menu-right p-3 shadow animated--grow-in" aria-labelledby="searchDropdown">
-        <form className="form-inline mr-auto w-100 navbar-search">
-          <div className="input-group">
-            <input type="text" className="form-control bg-light border-0 small" placeholder="Search for..." aria-label="Search" aria-describedby="basic-addon2" />
-            <div className="input-group-append">
-              <button className="btn btn-primary" type="button">
-                <i className="fa fa-search fa-sm" />
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </li>
-    <li className="nav-item">
-           <Link to="/">Home</Link>
-      </li>
-         <li className="nav-item ">
-           <Link to="/about">About</Link>
-        </li>
-        <li className="nav-item ">
-           <Link to="/contact">Contact</Link>
-         </li>
-    {/* Nav Item - Alerts */}
-    <li className="nav-item dropdown no-arrow mx-1">
-      <a className="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        <i className="fa fa-bell fa-fw" />
-        {/* Counter - Alerts */}
-        <span className="badge badge-danger badge-counter">3+</span>
-      </a>
-      {/* Dropdown - Alerts */}
-      <div className="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="alertsDropdown">
-        <h6 className="dropdown-header">
-          Alerts Center
-        </h6>
-        <a className="dropdown-item d-flex align-items-center" href="#">
-          <div className="mr-3">
-            <div className="icon-circle bg-primary">
-              <i className="fa fa-file-alt text-white" />
-            </div>
-          </div>
-          <div>
-            <div className="small text-gray-500">December 12, 2019</div>
-            <span className="font-weight-bold">A new monthly report is ready to download!</span>
-          </div>
-        </a>
-        <a className="dropdown-item d-flex align-items-center" href="#">
-          <div className="mr-3">
-            <div className="icon-circle bg-success">
-              <i className="fa fa-donate text-white" />
-            </div>
-          </div>
-          <div>
-            <div className="small text-gray-500">December 7, 2019</div>
-            $290.29 has been deposited into your account!
-          </div>
-        </a>
-        <a className="dropdown-item d-flex align-items-center" href="#">
-          <div className="mr-3">
-            <div className="icon-circle bg-warning">
-              <i className="fa fa-exclamation-triangle text-white" />
-            </div>
-          </div>
-          <div>
-            <div className="small text-gray-500">December 2, 2019</div>
-            Spending Alert: We've noticed unusually high spending for your account.
-          </div>
-        </a>
-        <a className="dropdown-item text-center small text-gray-500" href="#">Show All Alerts</a>
-      </div>
-    </li>
-    {/* Nav Item - Messages */}
-    <li className="nav-item dropdown no-arrow mx-1">
-      <a className="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        <i className="fa fa-envelope fa-fw" />
-        {/* Counter - Messages */}
-        <span className="badge badge-danger badge-counter">7</span>
-      </a>
-      {/* Dropdown - Messages */}
-      <div className="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="messagesDropdown">
-        <h6 className="dropdown-header">
-          Message Center
-        </h6>
-        <a className="dropdown-item d-flex align-items-center" href="#">
-          <div className="dropdown-list-image mr-3">
-            <img className="rounded-circle" src="img/undraw_profile_1.svg" alt="..." />
-            <div className="status-indicator bg-success" />
-          </div>
-          <div className="font-weight-bold">
-            <div className="text-truncate">Hi there! I am wondering if you can help me with a
-              problem I've been having.</div>
-            <div className="small text-gray-500">Emily Fowler · 58m</div>
-          </div>
-        </a>
-        <a className="dropdown-item d-flex align-items-center" href="#">
-          <div className="dropdown-list-image mr-3">
-            <img className="rounded-circle" src="img/undraw_profile_2.svg" alt="..." />
-            <div className="status-indicator" />
-          </div>
-          <div>
-            <div className="text-truncate">I have the photos that you ordered last month, how
-              would you like them sent to you?</div>
-            <div className="small text-gray-500">Jae Chun · 1d</div>
-          </div>
-        </a>
-        <a className="dropdown-item d-flex align-items-center" href="#">
-          <div className="dropdown-list-image mr-3">
-            <img className="rounded-circle" src="img/undraw_profile_3.svg" alt="..." />
-            <div className="status-indicator bg-warning" />
-          </div>
-          <div>
-            <div className="text-truncate">Last month's report looks great, I am very happy with
-              the progress so far, keep up the good work!</div>
-            <div className="small text-gray-500">Morgan Alvarez · 2d</div>
-          </div>
-        </a>
-        <a className="dropdown-item d-flex align-items-center" href="#">
-          <div className="dropdown-list-image mr-3">
-            <img className="rounded-circle" src="https://source.unsplash.com/Mv9hjnEUHR4/60x60" alt="..." />
-            <div className="status-indicator bg-success" />
-          </div>
-          <div>
-            <div className="text-truncate">Am I a good boy? The reason I ask is because someone
-              told me that people say this to all dogs, even if they aren't good...</div>
-            <div className="small text-gray-500">Chicken the Dog · 2w</div>
-          </div>
-        </a>
-        <a className="dropdown-item text-center small text-gray-500" href="#">Read More Messages</a>
-      </div>
-    </li>
-    <div className="topbar-divider d-none d-sm-block" />
-    {/* Nav Item - User Information */}
-    <li className="nav-item dropdown no-arrow">
-      <a className="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        <span className="mr-2 d-none d-lg-inline text-gray-600 small">Douglas McGee</span>
-        <img className="img-profile rounded-circle" src="img/undraw_profile.svg" />
-      </a>
-      {/* Dropdown - User Information */}
-      <div className="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
-        <a className="dropdown-item" href="#">
-          <i className="fas fa-user fa-sm fa-fw mr-2 text-gray-400" />
-          Profile
-        </a>
-        <a className="dropdown-item" href="#">
-          <i className="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400" />
-          Settings
-        </a>
-        <a className="dropdown-item" href="#">
-          <i className="fas fa-list fa-sm fa-fw mr-2 text-gray-400" />
-          Activity Log
-        </a>
-        <div className="dropdown-divider" />
-        <a className="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
-          <i className="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400" />
-          Logout
-        </a>
-      </div>
-    </li>
-  </ul>
-</nav>
-<navbar />
-</div>);
-}
+    </nav>
+  );
+};
 
 export default Navbar;

@@ -1,3 +1,4 @@
+// src/App.js - Updated with LDAP-aware admin routing
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
@@ -9,8 +10,7 @@ import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import Services from './components/Services';
 import Users from './components/Users';
-// Make sure this is importing the NEW simplified admin dashboard
-import SimplifiedAdminDashboard from './components/SimplifiedAdminDashboard.jsx';
+import SimplifiedAdminDashboard from './components/SimplifiedAdminDashboard';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -23,10 +23,11 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Admin Route component
+// Enhanced Admin Route component with LDAP support
 const AdminRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('token') !== null;
   const userData = localStorage.getItem('user');
+  const userType = localStorage.getItem('userType');
   
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
@@ -35,9 +36,10 @@ const AdminRoute = ({ children }) => {
   try {
     const user = JSON.parse(userData);
     const isAdmin = user && (
+      userType === 'internal' || // LDAP internal users are admins
       user.username === 'admin' || 
       user.email?.includes('admin') ||
-      user.id === 1 // customize this logic as needed
+      user.id === 1
     );
     
     if (!isAdmin) {
@@ -60,8 +62,8 @@ function App() {
           path="/" 
           element={
             localStorage.getItem('token') ? 
-              <Navigate to="/dashboard" /> : 
-              <Navigate to="/login" />
+            <Navigate to="/dashboard" /> : 
+            <Navigate to="/login" />
           } 
         />
         
@@ -78,6 +80,7 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        
         <Route 
           path="/services" 
           element={
@@ -86,6 +89,7 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        
         <Route 
           path="/users" 
           element={
@@ -95,7 +99,7 @@ function App() {
           } 
         />
         
-        {/* Admin routes - ONLY add these, don't change existing routes */}
+        {/* Admin-only route with LDAP support */}
         <Route 
           path="/admin" 
           element={
@@ -104,20 +108,9 @@ function App() {
             </AdminRoute>
           } 
         />
-        <Route 
-          path="/admin/dashboard" 
-          element={
-            <AdminRoute>
-              <SimplifiedAdminDashboard />
-            </AdminRoute>
-          } 
-        />
         
-        {/* Legacy admin route redirect */}
-        <Route 
-          path="/admin/databases" 
-          element={<Navigate to="/admin" />}
-        />
+        {/* Catch all route */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </div>
   );
