@@ -1,7 +1,8 @@
-// src/services/api.js - Centralized API service for LDAP-enhanced backend
-import { getAuthHeaders, clearAuth } from '../utils/auth';
+// src/services/api.js - Enhanced API service with relative URLs
+import { getAuthHeaders, clearAuth, getCurrentUser } from '../utils/auth';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+// Use relative URL - will work in both development and production
+const API_BASE_URL = '/api';
 
 class ApiService {
   constructor() {
@@ -45,7 +46,7 @@ class ApiService {
    * Authentication endpoints
    */
   async login(credentials) {
-    const response = await fetch(`${this.baseURL}/api/auth/login`, {
+    const response = await fetch(`${this.baseURL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -62,7 +63,7 @@ class ApiService {
   }
 
   async register(userData) {
-    const response = await fetch(`${this.baseURL}/api/auth/register`, {
+    const response = await fetch(`${this.baseURL}/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -79,7 +80,7 @@ class ApiService {
   }
 
   async getAuthHealth() {
-    const response = await fetch(`${this.baseURL}/api/auth/health`);
+    const response = await fetch(`${this.baseURL}/auth/health`);
     return response.json();
   }
 
@@ -87,9 +88,26 @@ class ApiService {
    * Database management endpoints
    */
   async createDatabase(databaseData) {
-    const response = await this.request('/api/databases', {
+    // Get current user and ensure user context is included
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error('User authentication required for database creation');
+    }
+
+    // Ensure the request includes required user information
+    const enhancedData = {
+      ...databaseData,
+      userId: currentUser.id,          // Required by backend
+      userName: currentUser.username,   // Required for namespace creation
+      // Keep backward compatibility
+      userID: currentUser.id           
+    };
+
+    console.log('🔄 Creating database with enhanced data:', enhancedData);
+
+    const response = await this.request('/databases', {
       method: 'POST',
-      body: JSON.stringify(databaseData)
+      body: JSON.stringify(enhancedData)
     });
 
     if (!response.ok) {
@@ -101,7 +119,16 @@ class ApiService {
   }
 
   async getDatabases(namespace) {
-    const response = await this.request(`/api/databases/${namespace}`);
+    // If no namespace provided, use current user's namespace
+    if (!namespace) {
+      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        throw new Error('User authentication required');
+      }
+      namespace = `${currentUser.id}${currentUser.username}`;
+    }
+
+    const response = await this.request(`/databases/${namespace}`);
     
     if (!response.ok) {
       throw new Error('Failed to fetch databases');
@@ -110,8 +137,27 @@ class ApiService {
     return response.json();
   }
 
+  async getUserDatabases(userId) {
+    const response = await this.request(`/users/${userId}/databases`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch user databases');
+    }
+
+    return response.json();
+  }
+
   async deleteDatabase(namespace, databaseName) {
-    const response = await this.request(`/api/databases/${namespace}/${databaseName}`, {
+    // If no namespace provided, use current user's namespace
+    if (!namespace) {
+      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        throw new Error('User authentication required');
+      }
+      namespace = `${currentUser.id}${currentUser.username}`;
+    }
+
+    const response = await this.request(`/databases/${namespace}/${databaseName}`, {
       method: 'DELETE'
     });
 
@@ -124,98 +170,30 @@ class ApiService {
   }
 
   /**
-   * User management endpoints
+   * Helper method to get current user namespace
    */
-  async getUsers() {
-    const response = await this.request('/api/users');
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch users');
+  getCurrentUserNamespace() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      throw new Error('User authentication required');
     }
-
-    return response.json();
-  }
-
-  async getUserById(userId) {
-    const response = await this.request(`/api/users/${userId}`);
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch user');
-    }
-
-    return response.json();
-  }
-
-  async updateUser(userId, userData) {
-    const response = await this.request(`/api/users/${userId}`, {
-      method: 'PUT',
-      body: JSON.stringify(userData)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Failed to update user');
-    }
-
-    return response.json();
-  }
-
-  async deleteUser(userId) {
-    const response = await this.request(`/api/users/${userId}`, {
-      method: 'DELETE'
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Failed to delete user');
-    }
-
-    return response.json();
+    return `${currentUser.id}${currentUser.username}`;
   }
 
   /**
-   * Kubernetes pods endpoint
+   * Helper method to get admin URL using current host
    */
-  async getPods(namespace = '') {
-    const endpoint = namespace ? `/api/pods/${namespace}` : '/api/pods';
-    const response = await this.request(endpoint);
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch pods');
+  getAdminUrl(namespace, dbName, dbType) {
+    const host = window.location.hostname;
+    if (dbType === 'mysql') {
+      return `http://${host}/${namespace}/${dbName}-phpmyadmin/`;
+    } else if (dbType === 'postgresql' || dbType === 'postgres') {
+      return `http://${host}/${namespace}/${dbName}-pgadmin/`;
     }
-
-    return response.json();
-  }
-
-  /**
-   * System health endpoint
-   */
-  async getHealth() {
-    const response = await fetch(`${this.baseURL}/health`);
-    return response.json();
-  }
-
-  /**
-   * YAML deployment endpoint
-   */
-  async deployYaml(yamlContent) {
-    const response = await this.request('/api/deploy-yaml', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain'
-      },
-      body: yamlContent
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Failed to deploy YAML');
-    }
-
-    return response.json();
+    return '';
   }
 }
 
-// Create and export singleton instance
+// Export singleton instance
 const apiService = new ApiService();
 export default apiService;

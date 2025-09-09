@@ -1,11 +1,10 @@
-# TBDback/Dockerfile
+# File: TBDback/Dockerfile
 FROM golang:1.24-alpine AS builder
 
-# Install build dependencies
-RUN apk add --no-cache git
-
-# Set working directory
 WORKDIR /app
+
+# Install git for go modules
+RUN apk add --no-cache git
 
 # Copy go mod files
 COPY go.mod go.sum ./
@@ -17,41 +16,20 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o tbdback-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
-# Final stage
+# Production stage
 FROM alpine:latest
 
-# Install ca-certificates
+# Install ca-certificates for HTTPS
 RUN apk --no-cache add ca-certificates
-
-# Create non-root user
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
 
 WORKDIR /root/
 
 # Copy the binary from builder stage
-COPY --from=builder /app/tbdback-service .
+COPY --from=builder /app/main .
 
-# Copy kubeconfig if needed
-COPY --from=builder /app/kubeconfig.yaml ./kubeconfig.yaml
-
-# Copy deployment.yaml if needed
-COPY --from=builder /app/deployment.yaml ./deployment.yaml
-
-# Change ownership
-RUN chown -R appuser:appgroup /root/
-
-# Switch to non-root user
-USER appuser
-
-# Expose REST API port
+# Expose port 8080
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1
-
-# Run the service
-CMD ["./tbdback-service"]
+CMD ["./main"]

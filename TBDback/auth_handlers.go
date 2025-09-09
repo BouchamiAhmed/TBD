@@ -52,7 +52,7 @@ type EnhancedRegisterRequest struct {
 // NewLDAPManager creates LDAP manager for user operations
 func NewLDAPManager() *LDAPManager {
 	return &LDAPManager{
-		Host:          "10.9.21.200",
+		Host:          "config.LDAPHost",
 		Port:          389,
 		AdminDN:       "cn=admin,dc=dbsaas,dc=local",
 		AdminPassword: "admin123",
@@ -131,11 +131,11 @@ func (lm *LDAPManager) CreateLDAPUser(req EnhancedRegisterRequest) error {
 }
 
 // NewLDAPAuthService creates LDAP service client
-func NewLDAPAuthService() *LDAPAuthService {
+/*func NewLDAPAuthService() *LDAPAuthService {
 	return &LDAPAuthService{
 		BaseURL: "http://10.9.21.201:8098", // Use external LoadBalancer IP and port
 	}
-}
+}*/
 
 // VerifyLDAPCredentials calls the LDAP microservice
 func (las *LDAPAuthService) VerifyLDAPCredentials(username, password string) (*LDAPAuthResponse, error) {
@@ -165,7 +165,7 @@ func (las *LDAPAuthService) VerifyLDAPCredentials(username, password string) (*L
 
 // RegisterEnhancedAuthHandlers with LDAP integration - NO database method redeclarations
 func RegisterEnhancedAuthHandlers(r *mux.Router, dbClient *DBClient) {
-	ldapService := NewLDAPAuthService()
+	ldapService := GetLDAPAuthService()
 
 	// Create auth tables
 	if err := dbClient.CreateAuthTablesIfNotExist(); err != nil {
@@ -196,7 +196,7 @@ func RegisterEnhancedAuthHandlers(r *mux.Router, dbClient *DBClient) {
 		fmt.Printf("🔄 Registering new LDAP user: %s (%s)\n", registerRequest.Username, registerRequest.UserType)
 
 		// Create LDAP manager and connect
-		ldapManager := NewLDAPManager()
+		ldapManager := GetLDAPManager()
 		err := ldapManager.Connect()
 		if err != nil {
 			fmt.Printf("❌ LDAP connection failed: %v\n", err)

@@ -47,11 +47,11 @@ func deployDatabaseToUserNamespace(dbRequest DatabaseRequest, clientset *kuberne
 
 	if dbRequest.Type == "mysql" {
 		port = "3306"
-		adminURL = fmt.Sprintf("http://10.9.21.201/%s/%s-phpmyadmin", userNamespace, dbRequest.Name)
+		adminURL = GetAdminURL(userNamespace, dbRequest.Name, dbRequest.Type)
 		adminType = "phpMyAdmin"
 	} else {
 		port = "5432"
-		adminURL = fmt.Sprintf("http://10.9.21.201/%s/%s-pgadmin", userNamespace, dbRequest.Name)
+		adminURL = GetAdminURL(userNamespace, dbRequest.Name, dbRequest.Type)
 		adminType = "pgAdmin"
 	}
 

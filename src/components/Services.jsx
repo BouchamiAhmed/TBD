@@ -1,4 +1,4 @@
-// src/components/Services.jsx - Enhanced with purple theme
+// src/components/Services.jsx - Enhanced with purple theme - CLEAN WITH URL FIX
 import React, { useState, useEffect } from 'react';
 
 const Services = () => {
@@ -30,6 +30,7 @@ const Services = () => {
             try {
                 const user = JSON.parse(userData);
                 setCurrentUser(user);
+                console.log('Current user loaded:', user); // Debug log
             } catch (error) {
                 console.error('Error parsing user data:', error);
             }
@@ -67,6 +68,16 @@ const Services = () => {
         } finally {
             setLoadingDatabases(false);
         }
+    };
+
+    // Helper function to generate admin URL (since we dropped backend adminUrl)
+    const generateAdminUrl = (dbName, dbType, namespace) => {
+        if (dbType === 'mysql') {
+            return `http://10.9.21.201/${namespace}/${dbName}-phpmyadmin/`;
+        } else if (dbType === 'postgresql' || dbType === 'postgres') {
+            return `http://10.9.21.201/${namespace}/${dbName}-pgadmin/`;
+        }
+        return '';
     };
 
     const handleCreateDatabase = () => {
@@ -113,28 +124,43 @@ const Services = () => {
         setDeployStatus({ isLoading: true, success: null, message: '', deployment: null });
 
         try {
+            // SIMPLE FIX: Add the missing userId and userName fields
+            const requestBody = {
+                type: selectedDbType,
+                name: databaseForm.name,
+                username: databaseForm.username,
+                password: databaseForm.password,
+                userId: currentUser.id,        // ← ADDED THIS
+                userName: currentUser.username, // ← ADDED THIS
+                namespace: `${currentUser.id}${currentUser.username}`
+            };
+
+            console.log('Creating database with:', requestBody); // Debug log
+
             const response = await fetch('http://localhost:8080/api/databases', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
                 },
-                body: JSON.stringify({
-                    type: selectedDbType,
-                    name: databaseForm.name,
-                    username: databaseForm.username,
-                    password: databaseForm.password,
-                    namespace: `${currentUser.id}${currentUser.username}`
-                })
+                body: JSON.stringify(requestBody)
             });
 
             if (response.ok) {
                 const result = await response.json();
+                
+                // Generate our own admin URL with trailing slash
+                const namespace = `${currentUser.id}${currentUser.username}`;
+                const adminUrl = generateAdminUrl(databaseForm.name, selectedDbType, namespace);
+                
                 setDeployStatus({
                     isLoading: false,
                     success: true,
                     message: `${selectedDbType} database "${databaseForm.name}" created successfully!`,
-                    deployment: result
+                    deployment: {
+                        ...result,
+                        adminUrl: adminUrl // Use our generated URL with trailing slash
+                    }
                 });
                 
                 setDatabaseForm({
@@ -194,6 +220,7 @@ const Services = () => {
             case 'mysql':
                 return 'fas fa-database text-warning';
             case 'postgresql':
+            case 'postgres':
                 return 'fas fa-elephant text-info';
             default:
                 return 'fas fa-database text-secondary';
@@ -210,6 +237,18 @@ const Services = () => {
                 return 'bg-danger';
             default:
                 return 'bg-secondary';
+        }
+    };
+
+    const getAdminTypeName = (type) => {
+        switch(type?.toLowerCase()) {
+            case 'mysql':
+                return 'phpMyAdmin';
+            case 'postgresql':
+            case 'postgres':
+                return 'pgAdmin';
+            default:
+                return 'Admin Panel';
         }
     };
 
@@ -232,6 +271,17 @@ const Services = () => {
                             </div>
                             <h1 className="display-5 fw-bold text-dark mb-3">Database Services</h1>
                             <p className="lead text-muted">Create and manage your database instances</p>
+                            {/* User info for debugging */}
+                            {currentUser && (
+                                <p className="text-muted small">
+                                    User: {currentUser.username} (ID: {currentUser.id})
+                                </p>
+                            )}
+                            {!currentUser && (
+                                <div className="alert alert-warning mt-3">
+                                    ⚠️ UserID is required (or valid UserName for resolution)
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -280,13 +330,66 @@ const Services = () => {
                 {deployStatus.message && (
                     <div className="row mb-4">
                         <div className="col-12">
-                            <div className={`alert ${deployStatus.success ? 'alert-success' : 'alert-danger'} border-0 d-flex justify-content-between align-items-center`}
+                            <div className={`alert ${deployStatus.success ? 'alert-success' : 'alert-danger'} border-0`}
                                  style={{ borderRadius: '15px' }}>
-                                <div className="d-flex align-items-center">
-                                    <i className={`fas ${deployStatus.success ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2`}></i>
-                                    {deployStatus.message}
+                                <div className="d-flex justify-content-between align-items-start">
+                                    <div className="flex-grow-1">
+                                        <div className="d-flex align-items-center mb-2">
+                                            <i className={`fas ${deployStatus.success ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2`}></i>
+                                            {deployStatus.message}
+                                        </div>
+                                        
+                                        {/* Database Details */}
+                                        {deployStatus.deployment && (
+                                            <div className="mt-3">
+                                                <h6 className="mb-2">Database Details:</h6>
+                                                <div className="row g-2 small">
+                                                    <div className="col-md-6">
+                                                        <strong>Name:</strong> {deployStatus.deployment.name}
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <strong>Type:</strong> {deployStatus.deployment.type}
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <strong>Host:</strong> {deployStatus.deployment.host}
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <strong>Port:</strong> {deployStatus.deployment.port}
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <strong>Username:</strong> {deployStatus.deployment.username}
+                                                    </div>
+                                                    <div className="col-md-6">
+                                                        <strong>Namespace:</strong> {deployStatus.deployment.namespace}
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Admin URL with trailing slash */}
+                                                {deployStatus.deployment.adminUrl && (
+                                                    <div className="mt-3 p-3 bg-light bg-opacity-50 rounded">
+                                                        <strong>Admin Panel:</strong>
+                                                        <br />
+                                                        <a 
+                                                            href={deployStatus.deployment.adminUrl}
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer"
+                                                            className="btn btn-sm btn-outline-primary mt-2"
+                                                            style={{ borderRadius: '8px' }}
+                                                        >
+                                                            <i className="fas fa-external-link-alt me-1"></i>
+                                                            Open {getAdminTypeName(deployStatus.deployment.type)}
+                                                        </a>
+                                                        <br />
+                                                        <small className="text-muted mt-1 d-block">
+                                                            URL: {deployStatus.deployment.adminUrl}
+                                                        </small>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button onClick={clearStatus} className="btn-close" aria-label="Close"></button>
                                 </div>
-                                <button onClick={clearStatus} className="btn-close" aria-label="Close"></button>
                             </div>
                         </div>
                     </div>
@@ -508,60 +611,65 @@ const Services = () => {
                                         </div>
                                     ) : (
                                         <div className="row g-4">
-                                            {databases.map((db, index) => (
-                                                <div key={index} className="col-lg-6 col-xl-4">
-                                                    <div className="card h-100 border-0 shadow-sm" style={{ borderRadius: '15px' }}>
-                                                        <div className="card-body p-4">
-                                                            <div className="d-flex justify-content-between align-items-start mb-3">
-                                                                <div className="d-flex align-items-center">
-                                                                    <div className="me-3">
-                                                                        <i className={getDatabaseIcon(db.type)} style={{ fontSize: '1.5rem' }}></i>
+                                            {databases.map((db, index) => {
+                                                // Generate admin URL for manage button (same as creation)
+                                                const adminUrl = generateAdminUrl(db.name, db.type, db.namespace);
+                                                
+                                                return (
+                                                    <div key={index} className="col-lg-6 col-xl-4">
+                                                        <div className="card h-100 border-0 shadow-sm" style={{ borderRadius: '15px' }}>
+                                                            <div className="card-body p-4">
+                                                                <div className="d-flex justify-content-between align-items-start mb-3">
+                                                                    <div className="d-flex align-items-center">
+                                                                        <div className="me-3">
+                                                                            <i className={getDatabaseIcon(db.type)} style={{ fontSize: '1.5rem' }}></i>
+                                                                        </div>
+                                                                        <div>
+                                                                            <h6 className="mb-1 fw-bold">{db.name}</h6>
+                                                                            <small className="text-muted">{db.type?.toUpperCase()}</small>
+                                                                        </div>
                                                                     </div>
-                                                                    <div>
-                                                                        <h6 className="mb-1 fw-bold">{db.name}</h6>
-                                                                        <small className="text-muted">{db.type?.toUpperCase()}</small>
-                                                                    </div>
+                                                                    <span className={`badge ${getStatusBadge(db.status)} px-2 py-1`}>
+                                                                        {db.status || 'Unknown'}
+                                                                    </span>
                                                                 </div>
-                                                                <span className={`badge ${getStatusBadge(db.status)} px-2 py-1`}>
-                                                                    {db.status || 'Unknown'}
-                                                                </span>
-                                                            </div>
 
-                                                            <div className="mb-3">
-                                                                <small className="text-muted d-block">Namespace: {db.namespace}</small>
-                                                                <small className="text-muted d-block">Created: {new Date(db.createdAt).toLocaleDateString()}</small>
-                                                            </div>
+                                                                <div className="mb-3">
+                                                                    <small className="text-muted d-block">Namespace: {db.namespace}</small>
+                                                                    <small className="text-muted d-block">Created: {new Date(db.createdAt).toLocaleDateString()}</small>
+                                                                </div>
 
-                                                            <div className="d-flex gap-2">
-                                                                {db.adminUrl && (
-                                                                    <a
-                                                                        href={db.adminUrl}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="btn btn-outline-primary btn-sm flex-grow-1"
+                                                                <div className="d-flex gap-2">
+                                                                    {adminUrl && (
+                                                                        <a
+                                                                            href={adminUrl}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="btn btn-outline-primary btn-sm flex-grow-1"
+                                                                            style={{ borderRadius: '8px' }}
+                                                                        >
+                                                                            <i className="fas fa-external-link-alt me-1"></i>
+                                                                            Manage
+                                                                        </a>
+                                                                    )}
+                                                                    <button
+                                                                        onClick={() => handleDeleteDatabase(db.namespace, db.name)}
+                                                                        disabled={deleteLoading[db.name]}
+                                                                        className="btn btn-outline-danger btn-sm"
                                                                         style={{ borderRadius: '8px' }}
                                                                     >
-                                                                        <i className="fas fa-external-link-alt me-1"></i>
-                                                                        Manage
-                                                                    </a>
-                                                                )}
-                                                                <button
-                                                                    onClick={() => handleDeleteDatabase(db.namespace, db.name)}
-                                                                    disabled={deleteLoading[db.name]}
-                                                                    className="btn btn-outline-danger btn-sm"
-                                                                    style={{ borderRadius: '8px' }}
-                                                                >
-                                                                    {deleteLoading[db.name] ? (
-                                                                        <span className="spinner-border spinner-border-sm"></span>
-                                                                    ) : (
-                                                                        <i className="fas fa-trash"></i>
-                                                                    )}
-                                                                </button>
+                                                                        {deleteLoading[db.name] ? (
+                                                                            <span className="spinner-border spinner-border-sm"></span>
+                                                                        ) : (
+                                                                            <i className="fas fa-trash"></i>
+                                                                        )}
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
@@ -602,16 +710,6 @@ const Services = () => {
                                                     <strong>Admin Tools</strong>
                                                     <br />
                                                     <small className="text-muted">phpMyAdmin & pgAdmin included</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="col-md-6">
-                                            <div className="d-flex align-items-start">
-                                                <i className="fas fa-check-circle text-success me-2 mt-1"></i>
-                                                <div>
-                                                    <strong>Isolated Namespaces</strong>
-                                                    <br />
-                                                    <small className="text-muted">Secure multi-tenant architecture</small>
                                                 </div>
                                             </div>
                                         </div>
