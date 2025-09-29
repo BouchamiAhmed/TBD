@@ -424,3 +424,121 @@ func (c *DBClient) DeleteDatabase(name, namespace string) error {
 
 	return nil
 }
+
+// Add these methods to your Adminms/admin-service/connectdb.go file
+// Place them after the existing DeleteDatabase method
+
+// DeleteUserDatabases removes all databases for a specific username
+func (c *DBClient) DeleteUserDatabases(username string) error {
+	fmt.Printf("🔄 Deleting all databases for user: %s\n", username)
+
+	// First get user ID from username
+	var userID int
+	err := c.db.QueryRow("SELECT id FROM users WHERE username = $1", username).Scan(&userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			fmt.Printf("ℹ️  No user found with username: %s\n", username)
+			return nil // No error if user doesn't exist
+		}
+		return fmt.Errorf("error finding user: %w", err)
+	}
+
+	// Delete all databases for this user
+	query := `DELETE FROM databases WHERE user_id = $1`
+	result, err := c.db.Exec(query, userID)
+	if err != nil {
+		fmt.Printf("❌ Failed to delete user databases: %v\n", err)
+		return fmt.Errorf("error deleting user databases: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	fmt.Printf("✅ Deleted %d database records for user %s\n", rowsAffected, username)
+	return nil
+}
+
+// DeleteNamespaceDatabases removes all databases in a specific namespace
+func (c *DBClient) DeleteNamespaceDatabases(namespace string) error {
+	fmt.Printf("🔄 Deleting all databases in namespace: %s\n", namespace)
+
+	query := `DELETE FROM databases WHERE namespace = $1`
+	result, err := c.db.Exec(query, namespace)
+	if err != nil {
+		fmt.Printf("❌ Failed to delete namespace databases: %v\n", err)
+		return fmt.Errorf("error deleting namespace databases: %w", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	fmt.Printf("✅ Deleted %d database records from namespace %s\n", rowsAffected, namespace)
+	return nil
+}
+
+// GetUserByUsername retrieves a user by their username
+/*func (c *DBClient) GetUserByUsername(username string) (*AuthUser, error) {
+	query := `SELECT id, username, email, first_name, last_name, created_at FROM users WHERE username = $1`
+
+	var user AuthUser
+	err := c.db.QueryRow(query, username).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.FirstName,
+		&user.LastName,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("user not found: %s", username)
+		}
+		return nil, fmt.Errorf("error querying user: %w", err)
+	}
+
+	return &user, nil
+}*/
+
+// CountDatabases returns the total number of databases
+func (c *DBClient) CountDatabases() (int, error) {
+	var count int
+	err := c.db.QueryRow("SELECT COUNT(*) FROM databases").Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("error counting databases: %w", err)
+	}
+	return count, nil
+}
+
+// CountUsers returns the total number of users
+func (c *DBClient) CountUsers() (int, error) {
+	var count int
+	err := c.db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("error counting users: %w", err)
+	}
+	return count, nil
+}
+
+// GetDatabaseTypeStats returns statistics about database types
+func (c *DBClient) GetDatabaseTypeStats() (map[string]int, error) {
+	query := `SELECT type, COUNT(*) as count FROM databases GROUP BY type`
+
+	rows, err := c.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("error querying database type stats: %w", err)
+	}
+	defer rows.Close()
+
+	stats := make(map[string]int)
+	for rows.Next() {
+		var dbType string
+		var count int
+		if err := rows.Scan(&dbType, &count); err != nil {
+			return nil, fmt.Errorf("error scanning database type stats: %w", err)
+		}
+		stats[dbType] = count
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating database type stats: %w", err)
+	}
+
+	return stats, nil
+}

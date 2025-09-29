@@ -708,6 +708,11 @@ func deleteDatabaseDeployment(dbName, namespace string) error {
 func getDatabaseType(dbName, namespace string) (string, error) {
 	ctx := context.Background()
 
+	// Ensure clientset is available
+	if clientset == nil {
+		return "", fmt.Errorf("kubernetes client not available")
+	}
+
 	// Check deployment labels to determine type
 	deployment, err := clientset.AppsV1().Deployments(namespace).Get(ctx, dbName, metav1.GetOptions{})
 	if err != nil {
@@ -736,24 +741,36 @@ func deleteMySQLResources(ctx context.Context, dbName, namespace string) error {
 	}
 
 	// Delete phpMyAdmin service
-	if err := clientset.CoreV1().Services(namespace).Delete(ctx, dbName+"-phpmyadmin", metav1.DeleteOptions{}); err != nil {
-		fmt.Printf("Warning: Failed to delete phpMyAdmin service: %v\n", err)
+	if clientset == nil {
+		fmt.Printf("Warning: kubernetes client not available, skipping service delete for %s-phpmyadmin\n", dbName)
 	} else {
-		fmt.Printf("✅ Deleted phpMyAdmin service\n")
+		if err := clientset.CoreV1().Services(namespace).Delete(ctx, dbName+"-phpmyadmin", metav1.DeleteOptions{}); err != nil {
+			fmt.Printf("Warning: Failed to delete phpMyAdmin service: %v\n", err)
+		} else {
+			fmt.Printf("✅ Deleted phpMyAdmin service\n")
+		}
 	}
 
 	// Delete phpMyAdmin deployment
-	if err := clientset.AppsV1().Deployments(namespace).Delete(ctx, dbName+"-phpmyadmin", metav1.DeleteOptions{}); err != nil {
-		fmt.Printf("Warning: Failed to delete phpMyAdmin deployment: %v\n", err)
+	if clientset == nil {
+		fmt.Printf("Warning: kubernetes client not available, skipping deployment delete for %s-phpmyadmin\n", dbName)
 	} else {
-		fmt.Printf("✅ Deleted phpMyAdmin deployment\n")
+		if err := clientset.AppsV1().Deployments(namespace).Delete(ctx, dbName+"-phpmyadmin", metav1.DeleteOptions{}); err != nil {
+			fmt.Printf("Warning: Failed to delete phpMyAdmin deployment: %v\n", err)
+		} else {
+			fmt.Printf("✅ Deleted phpMyAdmin deployment\n")
+		}
 	}
 
 	// Delete MySQL service
-	if err := clientset.CoreV1().Services(namespace).Delete(ctx, dbName, metav1.DeleteOptions{}); err != nil {
-		fmt.Printf("Warning: Failed to delete MySQL service: %v\n", err)
+	if clientset == nil {
+		fmt.Printf("Warning: kubernetes client not available, skipping service delete for %s\n", dbName)
 	} else {
-		fmt.Printf("✅ Deleted MySQL service\n")
+		if err := clientset.CoreV1().Services(namespace).Delete(ctx, dbName, metav1.DeleteOptions{}); err != nil {
+			fmt.Printf("Warning: Failed to delete MySQL service: %v\n", err)
+		} else {
+			fmt.Printf("✅ Deleted MySQL service\n")
+		}
 	}
 
 	// Delete MySQL deployment

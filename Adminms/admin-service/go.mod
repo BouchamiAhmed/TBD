@@ -1,4 +1,4 @@
-module github.com/BouchamiAhmed/TBD
+module admin-service
 
 go 1.24.2
 

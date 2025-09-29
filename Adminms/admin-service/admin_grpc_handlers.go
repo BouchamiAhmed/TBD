@@ -8,11 +8,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
-	"os"
 	"strings"
 
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -622,37 +619,4 @@ func GetUserNamespaceByUsername(username string) string {
 		}
 	}
 	return ""
-}
-
-func main() {
-	port := os.Getenv("GRPC_PORT")
-	if port == "" {
-		port = "50051"
-	}
-
-	fmt.Println("╔════════════════════════════════════════════════════════════╗")
-	fmt.Println("║          Admin gRPC Service - LDAP & Namespaces            ║")
-	fmt.Println("╚════════════════════════════════════════════════════════════╝")
-
-	lis, err := net.Listen("tcp", ":"+port)
-	if err != nil {
-		log.Fatalf("❌ Failed to listen: %v", err)
-	}
-
-	grpcServer := grpc.NewServer()
-	adminServer := NewAdminGRPCServer()
-	pb.RegisterAdminServiceServer(grpcServer, adminServer)
-
-	log.Printf("✅ Admin gRPC server listening on port %s", port)
-	log.Println("📋 Admin Operations Available:")
-	log.Println("   ✅ LDAP Management: ListLDAPUsers, GetLDAPUser, DeleteLDAPUser, UpdateLDAPPassword")
-	log.Println("   ✅ Namespace Management: GetAllNamespaces, GetNamespaceDetails, DeleteNamespace")
-	log.Println("   ✅ Resource Management: ListNamespaceResources")
-	log.Println("   ✅ System Operations: GetSystemHealth, GetAdminStats")
-	log.Println()
-	log.Println("ℹ️  Database operations (Create/Delete/List) use REST API")
-
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("❌ Failed to serve: %v", err)
-	}
 }
