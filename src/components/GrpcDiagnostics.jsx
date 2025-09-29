@@ -183,7 +183,7 @@ const GrpcDiagnostics = () => {
                                                     {getStatusBadge(testResults.results.direct.success)}
                                                 </h6>
                                                 <p className="card-text">
-                                                    <small>Port 50051 (localhost)</small>
+                                                    <small>Port 50051 (10.43.11.38)</small>
                                                 </p>
                                                 {testResults.results.direct.success ? (
                                                     <div className="text-success">

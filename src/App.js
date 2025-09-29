@@ -11,7 +11,7 @@ import Dashboard from './components/Dashboard';
 import Services from './components/Services';
 import Users from './components/Users';
 import SimplifiedAdminDashboard from './components/SimplifiedAdminDashboard';
-
+import PaymentInterface from './components/PaymentInterface';
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('token') !== null;
@@ -70,7 +70,7 @@ function App() {
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        
+         <Route path="/payment" element={<PaymentInterface />} />
         {/* Protected routes */}
         <Route 
           path="/dashboard" 
@@ -108,6 +108,7 @@ function App() {
             </AdminRoute>
           } 
         />
+       
         
         {/* Catch all route */}
         <Route path="*" element={<Navigate to="/" />} />

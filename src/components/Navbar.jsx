@@ -129,6 +129,9 @@ const Navbar = () => {
                     Services
                   </Link>
                 </li>
+                 <Link to="/payment" className="nav-link">
+    💳 Payment
+</Link>
                 {isAdmin() && (
                   <li className="nav-item">
                     <Link 
