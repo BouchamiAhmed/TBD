@@ -49,7 +49,7 @@ const Services = () => {
         setLoadingDatabases(true);
         try {
             const namespace = `${currentUser.id}${currentUser.username}`;
-            const response = await fetch(`http://localhost:8080/api/databases/${namespace}`, {
+            const response = await fetch(`/api/databases/${namespace}`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}` || ''
                 }
@@ -137,7 +137,7 @@ const Services = () => {
 
             console.log('Creating database with:', requestBody); // Debug log
 
-            const response = await fetch('http://localhost:8080/api/databases', {
+            const response = await fetch('/api/databases', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -191,7 +191,7 @@ const Services = () => {
         setDeleteLoading({ ...deleteLoading, [dbName]: true });
 
         try {
-            const response = await fetch(`http://localhost:8080/api/databases/${namespace}/${dbName}`, {
+            const response = await fetch(`/api/databases/${namespace}/${dbName}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}` || ''

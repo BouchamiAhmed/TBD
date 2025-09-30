@@ -1,51 +1,21 @@
+// admin-frontend-microservice/src/App.js
+// NO AUTHENTICATION - Direct access for internal LAN/LoadBalancer
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 
-// Protected Route component
-const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('adminToken') !== null;
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  return children;
-};
 function App() {
+  const basename = process.env.REACT_APP_BASE_PATH || '/admin-tbd';
   return (
     <div className="App admin-theme">
-      <Router>
+      <Router basename={basename}>
         <Routes>
-          {/* Redirect root to dashboard if authenticated, otherwise to login */}
-          <Route 
-            path="/" 
-            element={
-              localStorage.getItem('adminToken') ? 
-                <Navigate to="/dashboard" replace /> : 
-                <Navigate to="/login" replace />
-            } 
-          />
-          
-          {/* Public login route */}
-          <Route path="/login" element={<Login />} />
-          
-          {/* Protected admin routes */}
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
+          {/* Direct access to dashboard - no login required */}
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           
           {/* Catch all - redirect to dashboard */}
-          <Route 
-            path="*" 
-            element={<Navigate to="/dashboard" replace />} 
-          />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </div>

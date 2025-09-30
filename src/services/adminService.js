@@ -13,12 +13,12 @@ class AdminService {
     this.config = {
       // Local development - direct gRPC connection
       local: {
-        url: 'http://localhost:50051',
+        url: 'http://10.9.21.201:50051',
         useProxy: false
       },
       // Production - through Envoy proxy
       production: {
-        url: 'http://localhost:8080',
+        url: 'api',
         useProxy: true
       }
     };

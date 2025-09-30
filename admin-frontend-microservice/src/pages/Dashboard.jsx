@@ -1,22 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import UnifiedAdminDashboard from '../components/admin/UnifiedAdminDashboard';
+// admin-frontend-microservice/src/pages/Dashboard.jsx
+// NO AUTHENTICATION - Direct LAN access via LoadBalancer
+import React from 'react';
+import EnhancedAdminDashboard from '../components/EnhancedAdminDashboard';
 
 const Dashboard = () => {
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const userData = localStorage.getItem('adminUser');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminUser');
-    window.location.href = '/login';
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -28,23 +15,21 @@ const Dashboard = () => {
                 🛡️ Admin Dashboard
               </h1>
               <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full font-medium">
-                Microservice
+                K3s Preprod
               </span>
               <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium">
-                gRPC
+                gRPC :8032
+              </span>
+              <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full font-medium">
+                LoadBalancer LAN
               </span>
             </div>
             
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Welcome, {user?.username || 'Admin'}
+              <span className="text-sm text-gray-600 flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                Internal Access
               </span>
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm font-medium"
-              >
-                Logout
-              </button>
             </div>
           </div>
         </div>
@@ -52,7 +37,7 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <UnifiedAdminDashboard />
+        <EnhancedAdminDashboard />
       </main>
     </div>
   );
