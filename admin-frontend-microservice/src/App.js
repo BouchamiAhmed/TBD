@@ -5,10 +5,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Dashboard from './pages/Dashboard';
 
 function App() {
-  const basename = process.env.REACT_APP_BASE_PATH || '/admin-tbd';
   return (
     <div className="App admin-theme">
-      <Router basename={basename}>
+      <Router>
         <Routes>
           {/* Direct access to dashboard - no login required */}
           <Route path="/" element={<Dashboard />} />
