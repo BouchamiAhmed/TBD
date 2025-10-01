@@ -52,7 +52,7 @@ type EnhancedRegisterRequest struct {
 // NewLDAPManager creates LDAP manager for user operations
 func NewLDAPManager() *LDAPManager {
 	return &LDAPManager{
-		Host:          10.9.21.201,
+		Host:          config.LDAPHost,
 		Port:          389,
 		AdminDN:       "cn=admin,dc=dbsaas,dc=local",
 		AdminPassword: "admin123",
@@ -130,14 +130,6 @@ func (lm *LDAPManager) CreateLDAPUser(req EnhancedRegisterRequest) error {
 	return nil
 }
 
-// NewLDAPAuthService creates LDAP service client
-/*func NewLDAPAuthService() *LDAPAuthService {
-	return &LDAPAuthService{
-		BaseURL: "http://10.9.21.201:8098", // Use external LoadBalancer IP and port
-	}
-}*/
-
-// VerifyLDAPCredentials calls the LDAP microservice
 func (las *LDAPAuthService) VerifyLDAPCredentials(username, password string) (*LDAPAuthResponse, error) {
 	authReq := map[string]string{
 		"username": username,
