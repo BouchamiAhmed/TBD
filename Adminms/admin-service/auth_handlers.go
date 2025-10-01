@@ -52,7 +52,7 @@ type EnhancedRegisterRequest struct {
 // NewLDAPManager creates LDAP manager for user operations
 func NewLDAPManager() *LDAPManager {
 	return &LDAPManager{
-		Host:          "config.LDAPHost",
+		Host:          10.9.21.201,
 		Port:          389,
 		AdminDN:       "cn=admin,dc=dbsaas,dc=local",
 		AdminPassword: "admin123",

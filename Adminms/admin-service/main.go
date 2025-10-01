@@ -77,7 +77,21 @@ func main() {
 	}
 
 	// Initialize LDAP Manager
-	ldapManager = NewLDAPManager()
+	ldapHost := os.Getenv("LDAP_HOST")
+	if ldapHost == "" {
+		ldapHost = "10.9.21.201"
+	}
+	ldapManager = &LDAPManager{
+		Host:          ldapHost,
+		Port:          389,
+		AdminDN:       os.Getenv("LDAP_BIND_DN"),
+		AdminPassword: os.Getenv("LDAP_BIND_PASSWORD"),
+		BaseDN:        os.Getenv("LDAP_BASE_DN"),
+	}
+	if err := ldapManager.Connect(); err != nil {
+		log.Printf("⚠️  LDAP connection failed: %v", err)
+		ldapManager = nil
+	}
 	if err := ldapManager.Connect(); err != nil {
 		log.Printf("⚠️  LDAP connection failed: %v", err)
 		ldapManager = nil

@@ -566,7 +566,41 @@ func (s *AdminGRPCServer) CreateDatabase(ctx context.Context, req *pb.CreateData
 }
 
 func (s *AdminGRPCServer) GetUserDatabases(ctx context.Context, req *pb.GetUserDatabasesRequest) (*pb.GetUserDatabasesResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "Use REST API for database listing")
+	log.Printf("💾 gRPC Admin: GetUserDatabases (namespace=%s)", req.GetNamespace())
+
+	if req.GetNamespace() == "" {
+		return nil, status.Error(codes.InvalidArgument, "Namespace is required")
+	}
+
+	// List databases in the namespace
+	databases, err := listDatabasesInNamespace(req.GetNamespace())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to list databases: %v", err)
+	}
+
+	// Convert to protobuf format
+	var pbDatabases []*pb.Database
+	for _, db := range databases {
+		pbDatabases = append(pbDatabases, &pb.Database{
+			Name:      getStringFromMap(db, "name"),
+			Type:      getStringFromMap(db, "type"),
+			Namespace: req.GetNamespace(),
+			Status:    getStringFromMap(db, "status"),
+			CreatedAt: timestamppb.Now(), // You'll need to extract this properly from db
+			UserId:    getStringFromMap(db, "userId"),
+			AdminUrl:  getStringFromMap(db, "adminUrl"),
+			AdminType: getStringFromMap(db, "adminType"),
+		})
+	}
+
+	log.Printf("✅ Retrieved %d databases", len(pbDatabases))
+
+	return &pb.GetUserDatabasesResponse{
+		Success:   true,
+		Namespace: req.GetNamespace(),
+		Databases: pbDatabases,
+		Count:     int32(len(pbDatabases)),
+	}, nil
 }
 
 func (s *AdminGRPCServer) DeleteDatabase(ctx context.Context, req *pb.DeleteDatabaseRequest) (*pb.DeleteDatabaseResponse, error) {
