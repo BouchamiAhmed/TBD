@@ -47,7 +47,7 @@ const EnhancedAdminDashboard = () => {
   const [error, setError] = useState('');
 
   // REAL gRPC Client - LoadBalancer on port 8032
-  const grpcUrl = process.env.REACT_APP_GRPC_URL || 'http://localhost:8032';
+  const grpcUrl = window.CONFIG?.GRPC_WEB_URL || process.env.REACT_APP_GRPC_URL || 'http://10.9.21.201/admin-tbd';
   const [grpcClient] = useState(() => {
     console.log('🔌 Connecting to gRPC service:', grpcUrl);
     return new AdminServiceClient(grpcUrl, null, null);

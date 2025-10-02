@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Database, Server, Globe, Shield, Activity, Code, Target } from 'lucide-react';
+import { gsap } from 'gsap';
 import TechnicalBackground from './components/TechnicalBackground';
+import IntroScreen from './components/IntroScreen';
+import TargetCursor from './components/TargetCursor';
 
 // Import des slides
 import Slide01_Contexte from './slides/Slide01_Contexte';
@@ -21,8 +24,102 @@ import Slide15_Longhorn from './slides/Slide15_Longhorn';
 import Slide16_CICD from './slides/Slide16_CICD';
 import Slide17_Conclusion from './slides/Slide17_Conclusion';
 
+// Menu Button Component
+const MenuButton = ({ icon: Icon, label, isActive, onClick, index }) => {
+  const buttonRef = useRef(null);
+
+  useEffect(() => {
+    if (!buttonRef.current) return;
+
+    // Entrance animation
+    gsap.fromTo(buttonRef.current,
+      { 
+        scale: 0, 
+        opacity: 0,
+        rotation: -180
+      },
+      { 
+        scale: 1, 
+        opacity: 1,
+        rotation: 0,
+        duration: 0.6,
+        delay: index * 0.1,
+        ease: "back.out(2)"
+      }
+    );
+  }, [index]);
+
+  const handleMouseEnter = () => {
+    gsap.to(buttonRef.current, {
+      scale: 1.2,
+      rotation: 360,
+      duration: 0.4,
+      ease: "power2.out"
+    });
+  };
+
+  const handleMouseLeave = () => {
+    gsap.to(buttonRef.current, {
+      scale: 1,
+      rotation: 0,
+      duration: 0.3,
+      ease: "power2.inOut"
+    });
+  };
+
+  const handleClick = () => {
+    gsap.to(buttonRef.current, {
+      scale: 0.9,
+      duration: 0.1,
+      yoyo: true,
+      repeat: 1,
+      ease: "power2.inOut",
+      onComplete: onClick
+    });
+  };
+
+  return (
+    <button
+      ref={buttonRef}
+      onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={`relative group cursor-target ${isActive ? 'z-20' : 'z-10'}`}
+    >
+      <div className={`
+        w-20 h-20 rounded-full flex items-center justify-center
+        transition-all duration-300
+        ${isActive 
+          ? 'bg-gradient-to-br from-cyan-400 to-blue-600 shadow-2xl shadow-cyan-500/50' 
+          : 'bg-gradient-to-br from-violet-500/30 to-blue-500/30 backdrop-blur-xl border-2 border-violet-400/30'
+        }
+      `}>
+        <Icon className={`h-8 w-8 ${isActive ? 'text-white' : 'text-violet-300'}`} />
+      </div>
+      
+      {/* Tooltip */}
+      <div className={`
+        absolute -bottom-12 left-1/2 transform -translate-x-1/2
+        bg-black/80 backdrop-blur-xl px-3 py-1 rounded-lg
+        text-xs text-white whitespace-nowrap
+        opacity-0 group-hover:opacity-100 transition-opacity duration-300
+        pointer-events-none
+      `}>
+        {label}
+      </div>
+
+      {/* Active indicator */}
+      {isActive && (
+        <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+      )}
+    </button>
+  );
+};
+
 const App = () => {
+  const [showIntro, setShowIntro] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [showMenu, setShowMenu] = useState(false);
 
   const slides = [
     <Slide01_Contexte key="slide-1" />,
@@ -44,85 +141,142 @@ const App = () => {
     <Slide17_Conclusion key="slide-17" />
   ];
 
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
-  };
+  // Menu avec 7 catégories principales (regroupant vos 17 slides)
+  const menuItems = [
+    { icon: Target, label: "Contexte", slideIndex: 0 },
+    { icon: Server, label: "Architecture", slideIndex: 4 },
+    { icon: Shield, label: "Sécurité", slideIndex: 7 },
+    { icon: Activity, label: "Monitoring", slideIndex: 13 },
+    { icon: Database, label: "Stockage", slideIndex: 14 },
+    { icon: Code, label: "CI/CD", slideIndex: 15 },
+    { icon: Globe, label: "Conclusion", slideIndex: 16 }
+  ];
 
-  const previousSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-  };
+  useEffect(() => {
+    if (!showIntro) {
+      setTimeout(() => setShowMenu(true), 500);
+    }
+  }, [showIntro]);
 
   useEffect(() => {
     const handleKeyPress = (e) => {
+      if (showIntro) return;
+      
       if (e.key === 'ArrowRight' || e.key === ' ') {
         e.preventDefault();
-        nextSlide();
+        setCurrentSlide((prev) => (prev + 1) % slides.length);
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        previousSlide();
+        setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
+  }, [showIntro, slides.length]);
+
+  const handleMenuClick = (slideIndex) => {
+    setCurrentSlide(slideIndex);
+  };
+
+  // Déterminer quel bouton du menu doit être actif
+  const getActiveMenuIndex = () => {
+    for (let i = menuItems.length - 1; i >= 0; i--) {
+      if (currentSlide >= menuItems[i].slideIndex) {
+        return i;
+      }
+    }
+    return 0;
+  };
 
   return (
     <div className="relative min-h-screen bg-black overflow-hidden">
-      <TechnicalBackground />
-      
-      <div className="relative z-10">
-        {slides[currentSlide]}
-      </div>
+      {/* Intro Screen */}
+      {showIntro && <IntroScreen onComplete={() => setShowIntro(false)} />}
 
-      {/* Navigation Controls */}
-      <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-6 bg-black/50 backdrop-blur-xl px-8 py-4 rounded-full border border-violet-500/30">
-        <button
-          onClick={previousSlide}
-          disabled={currentSlide === 0}
-          className="p-3 rounded-full bg-violet-500/20 hover:bg-violet-500/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300 group"
-        >
-          <ChevronLeft className="h-6 w-6 text-violet-400 group-hover:text-violet-300" />
-        </button>
-        
-        <div className="flex items-center gap-2">
-          <span className="text-violet-400 font-semibold text-lg">{currentSlide + 1}</span>
-          <span className="text-gray-500">/</span>
-          <span className="text-gray-400">{slides.length}</span>
-        </div>
-        
-        <button
-          onClick={nextSlide}
-          disabled={currentSlide === slides.length - 1}
-          className="p-3 rounded-full bg-cyan-500/20 hover:bg-cyan-500/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-300 group"
-        >
-          <ChevronRight className="h-6 w-6 text-cyan-400 group-hover:text-cyan-300" />
-        </button>
-      </div>
+      {/* Main Presentation */}
+      {!showIntro && (
+        <>
+          <TargetCursor 
+            targetSelector="button, .cursor-target" 
+            spinDuration={3}
+            hideDefaultCursor={true}
+          />
+          
+          <TechnicalBackground />
+          
+          {/* Animated background blobs */}
+          <div className="absolute inset-0 opacity-20 pointer-events-none">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
+            <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-violet-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000" />
+            <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000" />
+          </div>
+          
+          <div className="relative z-10">
+            {slides[currentSlide]}
+          </div>
 
-      {/* Progress Bar */}
-      <div className="fixed top-0 left-0 right-0 h-1 bg-gray-800 z-50">
-        <div 
-          className="h-full bg-gradient-to-r from-violet-500 via-blue-500 to-cyan-500 transition-all duration-500"
-          style={{ width: `${((currentSlide + 1) / slides.length) * 100}%` }}
-        />
-      </div>
+          {/* Circular Menu */}
+          {showMenu && (
+            <div className="fixed bottom-12 left-1/2 transform -translate-x-1/2 z-50">
+              <div className="relative flex items-center justify-center gap-4">
+                {menuItems.map((item, index) => (
+                  <MenuButton
+                    key={index}
+                    icon={item.icon}
+                    label={item.label}
+                    isActive={getActiveMenuIndex() === index}
+                    onClick={() => handleMenuClick(item.slideIndex)}
+                    index={index}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* Slide Indicator */}
-      <div className="fixed top-8 right-8 z-50 bg-black/50 backdrop-blur-xl px-4 py-2 rounded-full border border-violet-500/30">
-        <span className="text-violet-400 font-semibold">Slide {currentSlide + 1}/{slides.length}</span>
-      </div>
+          {/* Progress Bar */}
+          <div className="fixed top-0 left-0 right-0 h-1 bg-gray-800 z-50">
+            <div 
+              className="h-full bg-gradient-to-r from-violet-500 via-blue-500 to-cyan-500 transition-all duration-500"
+              style={{ width: `${((currentSlide + 1) / slides.length) * 100}%` }}
+            />
+          </div>
 
-      {/* Keyboard Shortcuts Hint */}
-      <div className="fixed bottom-8 right-8 z-50 bg-black/50 backdrop-blur-xl px-4 py-2 rounded-lg border border-violet-500/30">
-        <p className="text-gray-400 text-sm">
-          <kbd className="px-2 py-1 bg-violet-500/20 rounded text-violet-400">←</kbd>
-          {' '}
-          <kbd className="px-2 py-1 bg-violet-500/20 rounded text-violet-400">→</kbd>
-          {' '}ou{' '}
-          <kbd className="px-2 py-1 bg-violet-500/20 rounded text-violet-400">Espace</kbd>
-        </p>
-      </div>
+          {/* Slide Indicator */}
+          <div className="fixed top-8 right-8 z-50 bg-black/50 backdrop-blur-xl px-4 py-2 rounded-full border border-violet-500/30">
+            <span className="text-violet-400 font-semibold">Slide {currentSlide + 1}/{slides.length}</span>
+          </div>
+
+          {/* Keyboard Shortcuts Hint */}
+          <div className="fixed bottom-8 right-8 z-50 bg-black/50 backdrop-blur-xl px-4 py-2 rounded-lg border border-violet-500/30">
+            <p className="text-gray-400 text-sm">
+              <kbd className="px-2 py-1 bg-violet-500/20 rounded text-violet-400">←</kbd>
+              {' '}
+              <kbd className="px-2 py-1 bg-violet-500/20 rounded text-violet-400">→</kbd>
+              {' '}ou{' '}
+              <kbd className="px-2 py-1 bg-violet-500/20 rounded text-violet-400">Espace</kbd>
+            </p>
+          </div>
+        </>
+      )}
+
+      <style jsx>{`
+        @keyframes blob {
+          0% { transform: translate(0px, 0px) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+          100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+      `}</style>
     </div>
   );
 };
