@@ -61,7 +61,7 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
 
       // Fade animation when slide changes
       if (previousSlideRef.current !== currentSlide) {
-        fadeRef.current = 0.5; // Start from black
+        fadeRef.current = 0; // Start from black
         previousSlideRef.current = currentSlide;
       }
 
@@ -83,12 +83,12 @@ export const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
       // Progressive brightness based on slide
       const brightnessBoost = (currentSlide / totalSlides) * 40;
 
-      // Create multiple wave layers with reduced blur
+      // Create multiple wave layers with minimal blur (React Bits style)
       const waves = [
-        { speed: 0.3, amplitude: 180, frequency: 0.002, color: color1, opacity: 0.18, yOffset: 0.2, blur: 5, diagonal: 0.3 }, // CHANGE blur HERE (was 40)
-        { speed: 0.25, amplitude: 150, frequency: 0.0025, color: color2, opacity: 0.22, yOffset: 0.4, blur: 2, diagonal: 0.5 }, // CHANGE blur HERE (was 35)
-        { speed: 0.35, amplitude: 130, frequency: 0.003, color: color3, opacity: 0.2, yOffset: 0.6, blur: 1, diagonal: 0.7 }, // CHANGE blur HERE (was 30)
-        { speed: 0.28, amplitude: 160, frequency: 0.0022, color: color1, opacity: 0.9, yOffset: 0.8, blur: 8, diagonal: 0.4 }, // CHANGE blur HERE (was 45)
+        { speed: 0.3, amplitude: 180, frequency: 0.002, color: color1, opacity: 0.2, yOffset: 0.2, blur: 0.5, diagonal: 0.3 }, // Sharp waves
+        { speed: 0.25, amplitude: 150, frequency: 0.0025, color: color2, opacity: 0.21, yOffset: 0.4, blur: 0.6, diagonal: 0.5 }, 
+        { speed: 0.35, amplitude: 130, frequency: 0.003, color: color3, opacity: 0.23, yOffset: 0.6, blur: 0.7, diagonal: 0.7 }, 
+        { speed: 0.28, amplitude: 160, frequency: 0.0022, color: color1, opacity: 0.24, yOffset: 0.8, blur: 0.6, diagonal: 0.4 },
       ];
 
       waves.forEach((wave, index) => {

@@ -6,6 +6,7 @@ import { Navigation } from './Navigation';
 import { ProgressBar } from './ProgressBar';
 import { AnimatedBackground } from './AnimatedBackground';
 import { PresentationProps } from '../types';
+import { Plasma } from './plasma';
 
 type TransitionStyle = 'slide' | 'fade' | 'zoom' | 'flip' | 'curtain' | 'diagonal';
 
