@@ -8,9 +8,16 @@ interface SlideProps {
   isActive: boolean;
   isNext: boolean;
   isPrev: boolean;
+  transitionStyle?: 'slide' | 'fade' | 'zoom' | 'flip' | 'curtain' | 'diagonal';
 }
 
-export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev }) => {
+export const Slide: React.FC<SlideProps> = ({ 
+  slide, 
+  isActive, 
+  isNext, 
+  isPrev,
+  transitionStyle = 'slide' 
+}) => {
   const slideRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const elementsRef = useRef<HTMLDivElement[]>([]);
@@ -21,61 +28,183 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
     const tl = gsap.timeline();
 
     if (isActive) {
-      // Master page change animation - inspired by Amaterasu.ai
-      tl.set(slideRef.current, { opacity: 1, zIndex: 20 })
-        .fromTo(slideRef.current, 
-          { 
-            clipPath: 'polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%)',
-            y: '100%',
-            rotationX: 15,
-            scale: 0.9
-          },
-          { 
-            clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-            y: '0%',
-            rotationX: 0,
-            scale: 1,
-            duration: 1.4,
-            ease: "power3.out"
-          }
-        )
-        .fromTo(contentRef.current,
-          { opacity: 0, y: 80, rotationX: 10 },
-          { opacity: 1, y: 0, rotationX: 0, duration: 1, ease: "power2.out" },
-          "-=0.8"
-        );
+      // ENTER ANIMATIONS based on transition style
+      switch (transitionStyle) {
+        case 'slide':
+          // Slide in from bottom with 3D perspective
+          tl.set(slideRef.current, { opacity: 1, zIndex: 20 })
+            .fromTo(slideRef.current, 
+              { 
+                clipPath: 'polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%)',
+                y: '100%',
+                rotationX: 15,
+                scale: 0.9
+              },
+              { 
+                clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+                y: '0%',
+                rotationX: 0,
+                scale: 1,
+                duration: 1.4,
+                ease: "power3.out"
+              }
+            );
+          break;
 
-      // Animate individual elements
+        case 'fade':
+          // Smooth fade with scale
+          tl.set(slideRef.current, { opacity: 0, zIndex: 20 })
+            .to(slideRef.current, {
+              opacity: 1,
+              scale: 1,
+              duration: 1.2,
+              ease: "power2.out"
+            });
+          break;
+
+        case 'zoom':
+          // Zoom in from center
+          tl.set(slideRef.current, { opacity: 0, scale: 0.5, zIndex: 20 })
+            .to(slideRef.current, {
+              opacity: 1,
+              scale: 1,
+              duration: 1,
+              ease: "back.out(1.7)"
+            });
+          break;
+
+        case 'flip':
+          // 3D flip animation
+          tl.set(slideRef.current, { opacity: 0, rotationY: -90, zIndex: 20 })
+            .to(slideRef.current, {
+              opacity: 1,
+              rotationY: 0,
+              duration: 1.2,
+              ease: "power2.out"
+            });
+          break;
+
+        case 'curtain':
+          // Curtain reveal from sides
+          tl.set(slideRef.current, { opacity: 1, zIndex: 20 })
+            .fromTo(slideRef.current,
+              { 
+                clipPath: 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)'
+              },
+              {
+                clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+                duration: 1.2,
+                ease: "power3.inOut"
+              }
+            );
+          break;
+
+        case 'diagonal':
+          // Diagonal wipe
+          tl.set(slideRef.current, { opacity: 1, zIndex: 20 })
+            .fromTo(slideRef.current,
+              {
+                clipPath: 'polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)'
+              },
+              {
+                clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+                duration: 1,
+                ease: "power2.out"
+              }
+            );
+          break;
+      }
+
+      // Content animation (common for all transitions)
+      tl.fromTo(contentRef.current,
+        { opacity: 0, y: 50, rotationX: 10 },
+        { opacity: 1, y: 0, rotationX: 0, duration: 1, ease: "power2.out" },
+        "-=0.6"
+      );
+
+      // Staggered element animations
       elementsRef.current.forEach((el, index) => {
         if (el) {
           tl.fromTo(el,
-            { opacity: 0, y: 50, rotationX: -10, scale: 0.95 },
+            { opacity: 0, y: 40, scale: 0.95 },
             { 
               opacity: 1, 
               y: 0, 
-              rotationX: 0, 
               scale: 1,
-              duration: 0.8, 
+              duration: 0.6, 
               ease: "power2.out",
-              delay: index * 0.15
+              delay: index * 0.1
             },
-            "-=0.6"
+            "-=0.5"
           );
         }
       });
 
     } else if (isPrev) {
-      tl.to(slideRef.current, {
-        clipPath: 'polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)',
-        y: '-100%',
-        rotationX: -15,
-        scale: 0.9,
-        opacity: 0,
-        duration: 1,
-        ease: "power3.in",
-        zIndex: 10
-      });
+      // EXIT ANIMATIONS when going backwards
+      switch (transitionStyle) {
+        case 'slide':
+          tl.to(slideRef.current, {
+            clipPath: 'polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)',
+            y: '-100%',
+            rotationX: -15,
+            opacity: 0,
+            duration: 1,
+            ease: "power3.in",
+            zIndex: 10
+          });
+          break;
+
+        case 'fade':
+          tl.to(slideRef.current, {
+            opacity: 0,
+            scale: 0.8,
+            duration: 0.8,
+            ease: "power2.in",
+            zIndex: 10
+          });
+          break;
+
+        case 'zoom':
+          tl.to(slideRef.current, {
+            opacity: 0,
+            scale: 1.5,
+            duration: 0.8,
+            ease: "power2.in",
+            zIndex: 10
+          });
+          break;
+
+        case 'flip':
+          tl.to(slideRef.current, {
+            opacity: 0,
+            rotationY: 90,
+            duration: 0.8,
+            ease: "power2.in",
+            zIndex: 10
+          });
+          break;
+
+        case 'curtain':
+          tl.to(slideRef.current, {
+            clipPath: 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)',
+            duration: 0.8,
+            ease: "power3.in",
+            zIndex: 10
+          });
+          break;
+
+        case 'diagonal':
+          tl.to(slideRef.current, {
+            clipPath: 'polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%)',
+            duration: 0.8,
+            ease: "power2.in",
+            zIndex: 10
+          });
+          break;
+      }
     } else if (isNext) {
+      // Set up next slide position
       tl.set(slideRef.current, { 
         clipPath: 'polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%)',
         y: '100%',
@@ -83,9 +212,8 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
         zIndex: 10 
       });
     } else {
+      // Reset inactive slides
       tl.set(slideRef.current, { 
-        clipPath: 'polygon(0% 100%, 100% 100%, 100% 100%, 0% 100%)',
-        y: '100%',
         opacity: 0, 
         zIndex: 0 
       });
@@ -94,7 +222,7 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
     return () => {
       tl.kill();
     };
-  }, [isActive, isNext, isPrev]);
+  }, [isActive, isNext, isPrev, transitionStyle]);
 
   const addToRefs = (el: HTMLDivElement | null) => {
     if (el && !elementsRef.current.includes(el)) {
@@ -104,7 +232,6 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
 
   const renderTitleSlide = () => (
     <div ref={contentRef} className="text-center max-w-6xl mx-auto px-8 relative">
-      {/* Floating particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(20)].map((_, i) => (
           <div
@@ -128,14 +255,14 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
       </div>
 
       <div ref={addToRefs}>
-        <h1 className="text-7xl font-black bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-8 leading-tight" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>
+        <h1 className="text-7xl font-black bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-8 leading-tight">
           {slide.title}
         </h1>
       </div>
 
       {slide.subtitle && (
         <div ref={addToRefs}>
-          <p className="text-2xl text-gray-300 mb-12 leading-relaxed font-light max-w-4xl mx-auto" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>
+          <p className="text-2xl text-gray-300 mb-12 leading-relaxed font-light max-w-4xl mx-auto">
             {slide.subtitle}
           </p>
         </div>
@@ -159,14 +286,14 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
   const renderContentSlide = () => (
     <div ref={contentRef} className="max-w-7xl mx-auto px-8">
       <div ref={addToRefs}>
-        <h2 className="text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-12 text-center" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>
+        <h2 className="text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-12 text-center">
           {slide.title}
         </h2>
       </div>
 
       {slide.content && (
         <div ref={addToRefs}>
-          <p className="text-xl text-gray-300 mb-12 text-center leading-relaxed max-w-4xl mx-auto" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>
+          <p className="text-xl text-gray-300 mb-12 text-center leading-relaxed max-w-4xl mx-auto">
             {slide.content}
           </p>
         </div>
@@ -185,7 +312,7 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
                 <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg">
                   {index + 1}
                 </div>
-                <p className="text-white text-lg leading-relaxed font-medium" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>{point}</p>
+                <p className="text-white text-lg leading-relaxed font-medium">{point}</p>
               </div>
               <div className="absolute top-4 right-4 w-2 h-2 bg-cyan-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             </div>
@@ -198,7 +325,7 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
   const renderStatsSlide = () => (
     <div ref={contentRef} className="max-w-7xl mx-auto px-8">
       <div ref={addToRefs}>
-        <h2 className="text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-16 text-center" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>
+        <h2 className="text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-16 text-center">
           {slide.title}
         </h2>
       </div>
@@ -226,14 +353,14 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
                   <Icon className="w-10 h-10 text-white" />
                 </div>
                 
-                <div className="text-5xl font-black text-white mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>
+                <div className="text-5xl font-black text-white mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                   {stat.value}
                 </div>
                 
-                <div className="text-gray-300 text-xl mb-4 font-medium" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>{stat.label}</div>
+                <div className="text-gray-300 text-xl mb-4 font-medium">{stat.label}</div>
                 
                 {stat.change && (
-                  <div className="text-green-400 text-sm font-bold bg-green-400/10 rounded-full px-4 py-2 inline-block" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>
+                  <div className="text-green-400 text-sm font-bold bg-green-400/10 rounded-full px-4 py-2 inline-block">
                     ↗ {stat.change}
                   </div>
                 )}
@@ -247,41 +374,8 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
     </div>
   );
 
-  const renderImageSlide = () => (
-    <div ref={contentRef} className="max-w-6xl mx-auto px-8 text-center">
-      <div ref={addToRefs}>
-        <h2 className="text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-12" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>
-          {slide.title}
-        </h2>
-      </div>
-
-      {slide.image && (
-        <div ref={addToRefs} className="mb-12 relative group">
-          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-3xl blur-xl scale-105 group-hover:scale-110 transition-transform duration-500"></div>
-          <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-white/20">
-            <img 
-              src={slide.image} 
-              alt={slide.title}
-              className="w-full h-96 object-cover group-hover:scale-105 transition-transform duration-700"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-          </div>
-        </div>
-      )}
-
-      {slide.content && (
-        <div ref={addToRefs}>
-          <p className="text-xl text-gray-300 leading-relaxed max-w-4xl mx-auto" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>
-            {slide.content}
-          </p>
-        </div>
-      )}
-    </div>
-  );
-
   const renderClosingSlide = () => (
     <div ref={contentRef} className="text-center max-w-5xl mx-auto px-8 relative">
-      {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(15)].map((_, i) => (
           <div
@@ -303,14 +397,14 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
       </div>
 
       <div ref={addToRefs}>
-        <h2 className="text-6xl font-black bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent mb-8" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>
+        <h2 className="text-6xl font-black bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent mb-8">
           {slide.title}
         </h2>
       </div>
 
       {slide.subtitle && (
         <div ref={addToRefs}>
-          <p className="text-2xl text-gray-300 mb-12 leading-relaxed font-light" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>
+          <p className="text-2xl text-gray-300 mb-12 leading-relaxed font-light">
             {slide.subtitle}
           </p>
         </div>
@@ -319,11 +413,11 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
       <div ref={addToRefs} className="flex justify-center items-center space-x-12 text-gray-400">
         <div className="flex items-center space-x-4 group cursor-pointer">
           <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full group-hover:scale-125 transition-transform duration-300"></div>
-          <span className="text-lg font-medium group-hover:text-white transition-colors duration-300" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>Thank you</span>
+          <span className="text-lg font-medium group-hover:text-white transition-colors duration-300">Thank you</span>
         </div>
         <div className="flex items-center space-x-4 group cursor-pointer">
           <div className="w-4 h-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full group-hover:scale-125 transition-transform duration-300"></div>
-          <span className="text-lg font-medium group-hover:text-white transition-colors duration-300" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>Questions?</span>
+          <span className="text-lg font-medium group-hover:text-white transition-colors duration-300">Questions?</span>
         </div>
       </div>
     </div>
@@ -337,8 +431,6 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
         return renderContentSlide();
       case 'stats':
         return renderStatsSlide();
-      case 'image':
-        return renderImageSlide();
       case 'closing':
         return renderClosingSlide();
       default:

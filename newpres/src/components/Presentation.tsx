@@ -4,7 +4,10 @@ import { Slide } from './Slide';
 import { IntroScreen } from './IntroScreen';
 import { Navigation } from './Navigation';
 import { ProgressBar } from './ProgressBar';
+import { AnimatedBackground } from './AnimatedBackground';
 import { PresentationProps } from '../types';
+
+type TransitionStyle = 'slide' | 'fade' | 'zoom' | 'flip' | 'curtain' | 'diagonal';
 
 export const Presentation: React.FC<PresentationProps> = ({
   slides,
@@ -15,8 +18,8 @@ export const Presentation: React.FC<PresentationProps> = ({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(autoAdvance);
   const [timeLeft, setTimeLeft] = useState(autoAdvanceTime);
+  const [transitionStyle, setTransitionStyle] = useState<TransitionStyle>('slide');
   const containerRef = useRef<HTMLDivElement>(null);
-  const backgroundRef = useRef<HTMLDivElement>(null);
 
   const handleEnterPresentation = () => {
     setShowIntro(false);
@@ -48,48 +51,15 @@ export const Presentation: React.FC<PresentationProps> = ({
     setTimeLeft(autoAdvanceTime);
   };
 
-  // Initialize GSAP animations
   useEffect(() => {
-    if (!containerRef.current || !backgroundRef.current) return;
+    if (!containerRef.current) return;
 
-    // Initial container animation
     gsap.fromTo(containerRef.current,
       { opacity: 0, scale: 0.95 },
       { opacity: 1, scale: 1, duration: 1.5, ease: "power2.out" }
     );
-
-    // Animate background elements
-    gsap.to(backgroundRef.current.children, {
-      rotation: 360,
-      duration: 20,
-      ease: "none",
-      repeat: -1,
-      stagger: 2
-    });
   }, []);
 
-  // Background color transition based on slide
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const colors = [
-      'from-gray-900 via-blue-900 to-purple-900',
-      'from-slate-900 via-cyan-900 to-blue-900',
-      'from-gray-900 via-purple-900 to-pink-900',
-      'from-blue-900 via-indigo-900 to-purple-900',
-      'from-purple-900 via-pink-900 to-red-900'
-    ];
-
-    const currentColor = colors[currentSlide % colors.length];
-    
-    gsap.to(containerRef.current, {
-      background: `linear-gradient(135deg, var(--tw-gradient-stops))`,
-      duration: 1.5,
-      ease: "power2.out"
-    });
-  }, [currentSlide]);
-
-  // Auto-advance logic
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
@@ -112,7 +82,6 @@ export const Presentation: React.FC<PresentationProps> = ({
     };
   }, [isPlaying, currentSlide, slides.length, nextSlide, autoAdvanceTime]);
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       switch (e.key) {
@@ -166,49 +135,14 @@ export const Presentation: React.FC<PresentationProps> = ({
   return (
     <div 
       ref={containerRef}
-      className="relative w-full h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 overflow-hidden"
+      className="relative w-full h-screen bg-black overflow-hidden"
     >
-      {/* Animated background elements */}
-      <div ref={backgroundRef} className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Large floating orbs */}
-        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-cyan-500/10 via-blue-500/5 to-transparent rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-purple-500/10 via-pink-500/5 to-transparent rounded-full blur-3xl"></div>
-        
-        {/* Medium floating elements */}
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-r from-cyan-400/5 to-blue-500/5 rounded-full blur-2xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-gradient-to-r from-purple-400/5 to-pink-500/5 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        
-        {/* Small particles */}
-        {[...Array(30)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-gradient-to-r from-cyan-400/30 to-blue-500/30 rounded-full"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `float ${5 + Math.random() * 10}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Grid pattern overlay */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="w-full h-full" style={{
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
-          `,
-          backgroundSize: '50px 50px'
-        }}></div>
-      </div>
+      <AnimatedBackground currentSlide={currentSlide} totalSlides={slides.length} />
 
       <ProgressBar progress={progress} isPlaying={isPlaying} />
       
-      {/* Auto-advance circular progress indicator */}
       {isPlaying && currentSlide < slides.length - 1 && (
-        <div className="fixed top-6 right-6 z-40">
+        <div className="fixed top-6 right-6 z-50">
           <div className="w-16 h-16 relative">
             <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
               <path
@@ -235,8 +169,26 @@ export const Presentation: React.FC<PresentationProps> = ({
         </div>
       )}
 
-      {/* Slide container */}
-      <div className="relative w-full h-full" style={{ perspective: '1000px' }}>
+      <div className="fixed top-20 right-8 z-50 bg-black/30 backdrop-blur-xl rounded-xl p-3 border border-white/10">
+        <div className="text-xs text-gray-400 mb-2 text-center">Transition</div>
+        <div className="grid grid-cols-2 gap-2">
+          {(['slide', 'fade', 'zoom', 'flip', 'curtain', 'diagonal'] as const).map((style) => (
+            <button
+              key={style}
+              onClick={() => setTransitionStyle(style)}
+              className={`px-3 py-1 rounded-lg text-xs transition-all duration-300 ${
+                transitionStyle === style
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white'
+                  : 'bg-white/10 text-gray-400 hover:bg-white/20'
+              }`}
+            >
+              {style.charAt(0).toUpperCase() + style.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative w-full h-full z-10" style={{ perspective: '1000px' }}>
         {slides.map((slide, index) => (
           <Slide
             key={slide.id}
@@ -244,6 +196,7 @@ export const Presentation: React.FC<PresentationProps> = ({
             isActive={index === currentSlide}
             isNext={index === currentSlide + 1}
             isPrev={index === currentSlide - 1}
+            transitionStyle={transitionStyle}
           />
         ))}
       </div>
@@ -259,8 +212,7 @@ export const Presentation: React.FC<PresentationProps> = ({
         onSlideSelect={selectSlide}
       />
 
-      {/* Custom CSS for animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); }
           50% { transform: translateY(-20px) rotate(180deg); }
