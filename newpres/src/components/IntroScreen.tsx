@@ -93,8 +93,6 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
           scale={1}
           opacity={0.8}
           mouseInteractive={true}
-          timeOffset={0}
-          rotationOffset={0}
         />
       </div>
 
@@ -105,25 +103,14 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
       <div className="relative z-10 text-center">
         {/* Main Text with Glitch Effect */}
         <div ref={textRef} className="mb-16">
-          <div className="text-7xl font-black mb-6">
+          <div className="text-9xl font-black">
             <GlitchText
               speed={3}
               enableShadows={true}
               enableOnHover={false}
               className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent"
             >
-              MOETEZ MARZOUKI
-            </GlitchText>
-          </div>
-          
-          <div className="text-3xl font-light tracking-widest uppercase">
-            <GlitchText
-              speed={2}
-              enableShadows={true}
-              enableOnHover={false}
-              className="text-white/90"
-            >
-              Presents
+              T.B.D
             </GlitchText>
           </div>
         </div>
