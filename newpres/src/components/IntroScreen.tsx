@@ -104,9 +104,9 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
         {/* Main Text with Glitch Effect - Brockmann Font */}
         <div ref={textRef} className="mb-16">
           <GlitchText
-            speed={10}
+            speed={3}
             enableShadows={true}
-            enableOnHover={false}
+            enableOnHover={true}
             className="text-9xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent"
             style={{ fontFamily: 'Brockmann, sans-serif', fontWeight: 700 }}
           >

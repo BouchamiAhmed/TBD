@@ -6,6 +6,7 @@ import { Navigation } from './Navigation';
 import { ProgressBar } from './ProgressBar';
 import { PresentationProps } from '../types';
 import Plasma from './plasma';
+import TinyLogo from './TinyLogo';
 
 export const Presentation: React.FC<PresentationProps> = ({
   slides,
@@ -75,7 +76,7 @@ export const Presentation: React.FC<PresentationProps> = ({
       r: endColor.r,
       g: endColor.g,
       b: endColor.b,
-      duration: 0.125, // 1.5 second transition
+      duration: 0.125,
       ease: "power2.inOut",
       onUpdate: () => {
         const newColor = rgbToHex(colorObj.r, colorObj.g, colorObj.b);
@@ -192,12 +193,12 @@ export const Presentation: React.FC<PresentationProps> = ({
     return <IntroScreen onEnter={handleEnterPresentation} />;
   }
 
- return (
+  return (
     <div 
       ref={containerRef}
       className="relative w-full h-screen overflow-hidden"
     >
-      {/* ONE Plasma Background with unique offsets per slide */}
+      {/* Plasma Background */}
       <div className="absolute inset-0 z-0">
         <Plasma
           color={plasmaColor}
@@ -206,13 +207,17 @@ export const Presentation: React.FC<PresentationProps> = ({
           scale={1}
           opacity={0.75}
           mouseInteractive={true}
-          timeOffset={currentSlide * 3} // Each slide starts 10 seconds ahead
-          rotationOffset={currentSlide * 0.1} // Each slide rotates 0.3 radians more
+          timeOffset={currentSlide * 3}
+          rotationOffset={currentSlide * 0.1}
         />
       </div>
 
       {/* Dark overlay for text contrast */}
       <div className="absolute inset-0 bg-black/30 z-1" />
+
+      {/* TINY LOGO - Top Left on Every Slide */}
+      {/* Change size: 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '1xl' | '2xl' | '3xl' */}
+      <TinyLogo animated={true} size="1xl" />
 
       <ProgressBar progress={progress} isPlaying={isPlaying} />
       
@@ -266,18 +271,6 @@ export const Presentation: React.FC<PresentationProps> = ({
         onReset={resetPresentation}
         onSlideSelect={selectSlide}
       />
-
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(180deg); }
-        }
-        
-        @keyframes pulse {
-          0%, 100% { opacity: 0.4; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.1); }
-        }
-      `}</style>
     </div>
   );
 };

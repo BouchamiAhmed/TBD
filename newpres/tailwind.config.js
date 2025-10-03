@@ -5,7 +5,7 @@ export default {
     extend: {
       colors: {
         magenta: {
-          500: '#ff00ff',
+          500: '#300468ff',
         },
       },
       fontFamily: {
