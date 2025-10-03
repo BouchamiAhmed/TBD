@@ -91,7 +91,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
           speed={1}
           direction="forward"
           scale={1}
-          opacity={1}
+          opacity={0.8}
           mouseInteractive={true}
         />
       </div>
@@ -101,14 +101,14 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
 
       {/* Content */}
       <div className="relative z-10 text-center">
-        {/* Main Text with Glitch Effect */}
+        {/* Main Text with Glitch Effect - Brockmann Font */}
         <div ref={textRef} className="mb-16">
           <GlitchText
-            speed={3.8}
+            speed={10}
             enableShadows={true}
             enableOnHover={false}
             className="text-9xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent"
-            style={{ fontFamily: 'Figtree, sans-serif', fontWeight: 900 }}
+            style={{ fontFamily: 'Brockmann, sans-serif', fontWeight: 700 }}
           >
             T.B.D
           </GlitchText>

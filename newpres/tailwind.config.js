@@ -4,6 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
+        brockmann: ['Brockmann', 'sans-serif'],
         figtree: ['Figtree', 'sans-serif'],
       },
       keyframes: {
@@ -29,7 +30,7 @@ export default {
           "85%": { "clip-path": "inset(10% 0 60% 0)" },
           "90%": { "clip-path": "inset(15% 0 55% 0)" },
           "95%": { "clip-path": "inset(25% 0 35% 0)" },
-          "100%": { "clip-path": "inset(30% 0 60% 0)" },
+          "100%": { "clip-path": "inset(30% 0 40% 0)" },
         },
         // Aurora animation
         aurora: {

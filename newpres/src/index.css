@@ -1,3 +1,40 @@
+/* Local Brockmann Font */
+@font-face {
+  font-family: 'Brockmann';
+  src: url('/fonts/brockmann-medium-webfont.woff') format('woff'),
+       url('/fonts/brockmann-medium.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Brockmann';
+  src: url('/fonts/brockmann-medium-webfont.woff') format('woff'),
+       url('/fonts/brockmann-medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Brockmann';
+  src: url('/fonts/brockmann-medium-webfont.woff') format('woff'),
+       url('/fonts/brockmann-medium.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Brockmann';
+  src: url('/fonts/brockmann-medium-webfont.woff') format('woff'),
+       url('/fonts/brockmann-medium.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Local Figtree Font */
 @font-face {
   font-family: 'Figtree';
@@ -19,17 +56,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import Google Fonts */
+/* Import Google Fonts as fallback */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
-/* Global Font Configuration */
+/* Global Font Configuration - Figtree as default */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  font-weight: 400;
+  font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
 
 body {
@@ -37,18 +74,28 @@ body {
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
   background: #000;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
-/* Force font on all headings */
+/* Brockmann for all headings and titles */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: 'Brockmann', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
   font-weight: 700;
 }
 
-/* Paragraphs and spans */
+/* Figtree for body text */
 p, span, div, a, button, input, textarea, select {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* Brockmann for slide titles specifically */
+.slide-title,
+[class*="text-5xl"],
+[class*="text-6xl"],
+[class*="text-7xl"],
+[class*="text-8xl"],
+[class*="text-9xl"] {
+  font-family: 'Brockmann', sans-serif !important;
 }
 
 /* Monospace for code */
@@ -171,7 +218,7 @@ code, pre, .font-mono {
 /* Smooth transitions for all interactive elements */
 button, .interactive {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Figtree', sans-serif;
 }
 
 /* Focus styles */
@@ -226,13 +273,13 @@ button:focus-visible {
   }
 }
 
-/* Override any inline styles that might use different fonts */
-[style*="font-family"] {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+/* Override any inline styles - Figtree for body */
+[style*="font-family"]:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
+  font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
 }
 
-/* Special case for Neo Sans Pro mentions - convert to Inter */
+/* Special case for Neo Sans Pro mentions - convert to Figtree */
 .font-neo-sans,
 [style*="Neo Sans Pro"] {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+  font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
 }
