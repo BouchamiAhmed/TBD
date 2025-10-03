@@ -4,9 +4,8 @@ import { Slide } from './Slide';
 import { IntroScreen } from './IntroScreen';
 import { Navigation } from './Navigation';
 import { ProgressBar } from './ProgressBar';
-import { AnimatedBackground } from './AnimatedBackground';
 import { PresentationProps } from '../types';
-import { Plasma } from './plasma';
+import Plasma from './plasma';
 
 type TransitionStyle = 'slide' | 'fade' | 'zoom' | 'flip' | 'curtain' | 'diagonal';
 
@@ -138,7 +137,7 @@ export const Presentation: React.FC<PresentationProps> = ({
       ref={containerRef}
       className="relative w-full h-screen bg-black overflow-hidden"
     >
-      <AnimatedBackground currentSlide={currentSlide} totalSlides={slides.length} />
+      {/* NO AnimatedBackground here - Plasma is in each Slide */}
 
       <ProgressBar progress={progress} isPlaying={isPlaying} />
       
@@ -170,25 +169,6 @@ export const Presentation: React.FC<PresentationProps> = ({
         </div>
       )}
 
-      <div className="fixed top-20 right-8 z-50 bg-black/30 backdrop-blur-xl rounded-xl p-3 border border-white/10">
-        <div className="text-xs text-gray-400 mb-2 text-center">Transition</div>
-        <div className="grid grid-cols-2 gap-2">
-          {(['slide', 'fade', 'zoom', 'flip', 'curtain', 'diagonal'] as const).map((style) => (
-            <button
-              key={style}
-              onClick={() => setTransitionStyle(style)}
-              className={`px-3 py-1 rounded-lg text-xs transition-all duration-300 ${
-                transitionStyle === style
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white'
-                  : 'bg-white/10 text-gray-400 hover:bg-white/20'
-              }`}
-            >
-              {style.charAt(0).toUpperCase() + style.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="relative w-full h-full z-10" style={{ perspective: '1000px' }}>
         {slides.map((slide, index) => (
           <Slide
@@ -197,7 +177,6 @@ export const Presentation: React.FC<PresentationProps> = ({
             isActive={index === currentSlide}
             isNext={index === currentSlide + 1}
             isPrev={index === currentSlide - 1}
-            transitionStyle={transitionStyle}
           />
         ))}
       </div>
