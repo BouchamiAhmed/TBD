@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import { CurvedLogo } from './CurvedLogo';
+import GlitchText from './GlitchText';
 import Plasma from './plasma';
 
 interface IntroScreenProps {
@@ -9,9 +9,8 @@ interface IntroScreenProps {
 
 export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const circlesRef = useRef<HTMLDivElement[]>([]);
-  const logoRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
+  const clickTextRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -20,66 +19,37 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
 
     // Initial setup
     gsap.set(containerRef.current, { opacity: 0 });
-    gsap.set(circlesRef.current, { scale: 0, opacity: 0 });
-    gsap.set(logoRef.current, { opacity: 0, scale: 0.5, rotation: -180 });
-    gsap.set(textRef.current, { opacity: 0, y: 20 });
+    gsap.set(textRef.current, { opacity: 0, scale: 0.8 });
+    gsap.set(clickTextRef.current, { opacity: 0 });
 
     // Entrance animation
     tl.to(containerRef.current, { opacity: 1, duration: 0.5 })
-      .to(circlesRef.current, {
-        scale: 1,
-        opacity: 0.6,
-        duration: 1.5,
-        ease: "back.out(1.7)",
-        stagger: {
-          amount: 0.8,
-          from: "center"
-        }
-      })
-      .to(logoRef.current, {
-        opacity: 1,
-        scale: 1,
-        rotation: 0,
-        duration: 1.5,
-        ease: "elastic.out(1, 0.5)"
-      }, "-=1")
       .to(textRef.current, {
         opacity: 1,
-        y: 0,
+        scale: 1,
+        duration: 1.2,
+        ease: "back.out(1.7)"
+      }, "+=0.3")
+      .to(clickTextRef.current, {
+        opacity: 1,
         duration: 0.8,
         ease: "power2.out"
-      }, "-=0.5");
+      }, "+=0.5");
 
-    // Continuous floating animation for circles
-    circlesRef.current.forEach((circle, index) => {
-      if (circle) {
-        gsap.to(circle, {
-          rotation: 360,
-          duration: 20 + (index * 2),
-          ease: "none",
-          repeat: -1
-        });
-
-        gsap.to(circle, {
-          scale: 1.1,
-          duration: 3 + (index * 0.5),
-          ease: "sine.inOut",
-          repeat: -1,
-          yoyo: true
-        });
-      }
+    // Pulse animation for click text
+    gsap.to(clickTextRef.current, {
+      opacity: 0.6,
+      duration: 1.5,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut',
+      delay: 2
     });
 
     return () => {
       tl.kill();
     };
   }, []);
-
-  const addToCircleRefs = (el: HTMLDivElement | null) => {
-    if (el && !circlesRef.current.includes(el)) {
-      circlesRef.current.push(el);
-    }
-  };
 
   const handleEnter = () => {
     if (!containerRef.current) return;
@@ -89,26 +59,14 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
     });
 
     // Exit animation
-    tl.to(circlesRef.current, {
-      scale: 1.5,
-      opacity: 0,
-      duration: 0.8,
-      ease: "power2.in",
-      stagger: {
-        amount: 0.3,
-        from: "center"
-      }
-    })
-    .to(logoRef.current, {
+    tl.to(textRef.current, {
       scale: 0,
       opacity: 0,
-      rotation: 180,
       duration: 0.8,
       ease: "power2.in"
-    }, "-=0.6")
-    .to(textRef.current, {
+    })
+    .to(clickTextRef.current, {
       opacity: 0,
-      y: -20,
       duration: 0.5,
       ease: "power2.in"
     }, "-=0.5")
@@ -135,89 +93,52 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
           scale={1}
           opacity={0.8}
           mouseInteractive={true}
+          timeOffset={0}
+          rotationOffset={0}
         />
       </div>
 
-      {/* Dark overlay for better contrast */}
+      {/* Dark overlay for contrast */}
       <div className="absolute inset-0 bg-black/30"></div>
 
-      {/* Geometric Circle Pattern */}
-      <div className="relative w-96 h-96 z-10">
-        {/* Outer circles */}
-        {[...Array(8)].map((_, i) => {
-          const angle = (i * 45) * (Math.PI / 180);
-          const radius = 120;
-          const x = Math.cos(angle) * radius;
-          const y = Math.sin(angle) * radius;
+      {/* Content */}
+      <div className="relative z-10 text-center">
+        {/* Main Text with Glitch Effect */}
+        <div ref={textRef} className="mb-16">
+          <div className="text-7xl font-black mb-6">
+            <GlitchText
+              speed={3}
+              enableShadows={true}
+              enableOnHover={false}
+              className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent"
+            >
+              MOETEZ MARZOUKI
+            </GlitchText>
+          </div>
           
-          return (
-            <div
-              key={`outer-${i}`}
-              ref={addToCircleRefs}
-              className="absolute w-24 h-24 border border-white/30 rounded-full backdrop-blur-sm"
-              style={{
-                left: '50%',
-                top: '50%',
-                transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`
-              }}
-            />
-          );
-        })}
-
-        {/* Inner circles */}
-        {[...Array(6)].map((_, i) => {
-          const angle = (i * 60) * (Math.PI / 180);
-          const radius = 80;
-          const x = Math.cos(angle) * radius;
-          const y = Math.sin(angle) * radius;
-          
-          return (
-            <div
-              key={`inner-${i}`}
-              ref={addToCircleRefs}
-              className="absolute w-16 h-16 border border-white/40 rounded-full backdrop-blur-sm"
-              style={{
-                left: '50%',
-                top: '50%',
-                transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`
-              }}
-            />
-          );
-        })}
-
-        {/* Center circle */}
-        <div
-          ref={addToCircleRefs}
-          className="absolute w-32 h-32 border-2 border-white/60 rounded-full left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 backdrop-blur-sm"
-        />
-
-        {/* Circular Logo */}
-        <div 
-          ref={logoRef}
-          className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
-        >
-          <CurvedLogo
-            topText="T.B.D"
-            bottomText="SOLUTION"
-            radius={100}
-            animated={false}
-          />
+          <div className="text-3xl font-light tracking-widest uppercase">
+            <GlitchText
+              speed={2}
+              enableShadows={true}
+              enableOnHover={false}
+              className="text-white/90"
+            >
+              Presents
+            </GlitchText>
+          </div>
         </div>
 
-        {/* Click to Enter Text */}
-        <div 
-          ref={textRef}
-          className="absolute left-1/2 top-[calc(50%+160px)] transform -translate-x-1/2 pointer-events-none"
-        >
-          <div className="text-white text-sm font-medium tracking-[0.2em] uppercase backdrop-blur-sm bg-black/20 px-4 py-2 rounded-full">
+        {/* Click to Enter */}
+        <div ref={clickTextRef} className="opacity-0">
+          <div className="text-white text-sm font-medium tracking-[0.3em] uppercase backdrop-blur-sm bg-white/10 px-6 py-3 rounded-full border border-white/20 inline-block">
             CLICK TO ENTER
           </div>
         </div>
       </div>
 
-      {/* Background particles */}
+      {/* Minimal floating particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-        {[...Array(20)].map((_, i) => (
+        {[...Array(10)].map((_, i) => (
           <div
             key={i}
             className="absolute w-1 h-1 bg-white/20 rounded-full"
@@ -230,6 +151,13 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
           />
         ))}
       </div>
+
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); opacity: 0.2; }
+          50% { transform: translateY(-20px); opacity: 0.5; }
+        }
+      `}</style>
     </div>
   );
 };
