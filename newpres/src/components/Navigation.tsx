@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Maximize2 } from 'lucide-react';
+import Counter from './Counter';
 
 interface NavigationProps {
   currentSlide: number;
@@ -36,7 +37,7 @@ export const Navigation: React.FC<NavigationProps> = ({
     );
 
     // Button hover animations
-    buttonsRef.current.forEach((button, index) => {
+    buttonsRef.current.forEach((button) => {
       if (button) {
         button.addEventListener('mouseenter', () => {
           gsap.to(button, { scale: 1.1, duration: 0.3, ease: "back.out(1.7)" });
@@ -151,13 +152,21 @@ export const Navigation: React.FC<NavigationProps> = ({
         {/* Divider */}
         <div className="w-px h-8 bg-gradient-to-b from-transparent via-white/20 to-transparent"></div>
 
-        {/* Slide counter */}
-        <div className="text-white text-sm font-bold bg-gradient-to-r from-white/10 to-white/5 px-4 py-2 rounded-lg border border-white/10" style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}>
-          <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-            {currentSlide + 1}
-          </span>
-          <span className="text-white/60 mx-1">/</span>
-          <span className="text-white/80">{totalSlides}</span>
+        {/* Counter Component - React Bits Animated Counter */}
+        <div className="flex items-center gap-2 bg-gradient-to-r from-white/10 to-white/5 px-4 py-2 rounded-lg border border-white/10">
+          <Counter
+            value={currentSlide + 1}
+            places={[10, 1]}
+            fontSize={32}
+            padding={2}
+            gap={4}
+            textColor="#22d3ee"
+            fontWeight={900}
+            gradientFrom="transparent"
+            gradientTo="transparent"
+          />
+          <span className="text-white/60 text-lg mx-1">/</span>
+          <span className="text-white/80 text-lg font-bold">{totalSlides}</span>
         </div>
       </div>
 

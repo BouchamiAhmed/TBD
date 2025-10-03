@@ -3,6 +3,11 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      colors: {
+        magenta: {
+          500: '#ff00ff',
+        },
+      },
       fontFamily: {
         brockmann: ['Brockmann', 'sans-serif'],
         figtree: ['Figtree', 'sans-serif'],
