@@ -7,8 +7,6 @@ import { ProgressBar } from './ProgressBar';
 import { PresentationProps } from '../types';
 import Plasma from './plasma';
 
-type TransitionStyle = 'slide' | 'fade' | 'zoom' | 'flip' | 'curtain' | 'diagonal';
-
 export const Presentation: React.FC<PresentationProps> = ({
   slides,
   autoAdvance = false,
@@ -18,8 +16,79 @@ export const Presentation: React.FC<PresentationProps> = ({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(autoAdvance);
   const [timeLeft, setTimeLeft] = useState(autoAdvanceTime);
-  const [transitionStyle, setTransitionStyle] = useState<TransitionStyle>('slide');
+  const [plasmaColor, setPlasmaColor] = useState('#0066ff');
   const containerRef = useRef<HTMLDivElement>(null);
+  const colorAnimationRef = useRef<gsap.core.Tween | null>(null);
+
+  // Get plasma color based on slide
+  const getPlasmaColor = (slideIndex: number) => {
+    const colors = [
+      '#0066ff', // Blue
+      '#6600ff', // Purple
+      '#ff00ff', // Magenta
+      '#00ffff', // Cyan
+      '#ff6600', // Orange
+      '#00ff88', // Green
+      '#ff0088', // Pink
+      '#8800ff', // Violet
+    ];
+    return colors[slideIndex % colors.length];
+  };
+
+  // Helper to convert hex to RGB
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 0, g: 0, b: 0 };
+  };
+
+  // Helper to convert RGB to hex
+  const rgbToHex = (r: number, g: number, b: number) => {
+    const toHex = (n: number) => {
+      const hex = Math.round(n).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  };
+
+  // Smooth color transition when slide changes
+  useEffect(() => {
+    if (showIntro) return;
+
+    // Kill previous animation if exists
+    if (colorAnimationRef.current) {
+      colorAnimationRef.current.kill();
+    }
+
+    const targetColor = getPlasmaColor(currentSlide);
+    const startColor = hexToRgb(plasmaColor);
+    const endColor = hexToRgb(targetColor);
+
+    // Create object to animate
+    const colorObj = { ...startColor };
+
+    // Animate the RGB values smoothly
+    colorAnimationRef.current = gsap.to(colorObj, {
+      r: endColor.r,
+      g: endColor.g,
+      b: endColor.b,
+      duration: 0.125, // 1.5 second transition
+      ease: "power2.inOut",
+      onUpdate: () => {
+        const newColor = rgbToHex(colorObj.r, colorObj.g, colorObj.b);
+        setPlasmaColor(newColor);
+      }
+    });
+
+    return () => {
+      if (colorAnimationRef.current) {
+        colorAnimationRef.current.kill();
+      }
+    };
+  }, [currentSlide, showIntro]);
 
   const handleEnterPresentation = () => {
     setShowIntro(false);
@@ -50,15 +119,6 @@ export const Presentation: React.FC<PresentationProps> = ({
     setCurrentSlide(index);
     setTimeLeft(autoAdvanceTime);
   };
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    gsap.fromTo(containerRef.current,
-      { opacity: 0, scale: 0.95 },
-      { opacity: 1, scale: 1, duration: 1.5, ease: "power2.out" }
-    );
-  }, []);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -132,12 +192,27 @@ export const Presentation: React.FC<PresentationProps> = ({
     return <IntroScreen onEnter={handleEnterPresentation} />;
   }
 
-  return (
+ return (
     <div 
       ref={containerRef}
-      className="relative w-full h-screen bg-black overflow-hidden"
+      className="relative w-full h-screen overflow-hidden"
     >
-      {/* NO AnimatedBackground here - Plasma is in each Slide */}
+      {/* ONE Plasma Background with unique offsets per slide */}
+      <div className="absolute inset-0 z-0">
+        <Plasma
+          color={plasmaColor}
+          speed={1}
+          direction="forward"
+          scale={1}
+          opacity={0.75}
+          mouseInteractive={true}
+          timeOffset={currentSlide * 3} // Each slide starts 10 seconds ahead
+          rotationOffset={currentSlide * 0.1} // Each slide rotates 0.3 radians more
+        />
+      </div>
+
+      {/* Dark overlay for text contrast */}
+      <div className="absolute inset-0 bg-black/30 z-1" />
 
       <ProgressBar progress={progress} isPlaying={isPlaying} />
       
