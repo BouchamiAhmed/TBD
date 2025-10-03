@@ -91,7 +91,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
           speed={1}
           direction="forward"
           scale={1}
-          opacity={0.8}
+          opacity={1}
           mouseInteractive={true}
         />
       </div>
@@ -103,16 +103,15 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
       <div className="relative z-10 text-center">
         {/* Main Text with Glitch Effect */}
         <div ref={textRef} className="mb-16">
-          <div className="text-9xl font-black">
-            <GlitchText
-              speed={3}
-              enableShadows={true}
-              enableOnHover={false}
-              className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent"
-            >
-              T.B.D
-            </GlitchText>
-          </div>
+          <GlitchText
+            speed={3.8}
+            enableShadows={true}
+            enableOnHover={false}
+            className="text-9xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent"
+            style={{ fontFamily: 'Figtree, sans-serif', fontWeight: 900 }}
+          >
+            T.B.D
+          </GlitchText>
         </div>
 
         {/* Click to Enter */}
