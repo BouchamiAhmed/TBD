@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import AnimatedHeading from "./AnimateHeading";
+import { CurvedLogo } from './CurvedLogo';
+import Plasma from './plasma';
 
 interface IntroScreenProps {
   onEnter: () => void;
@@ -9,8 +10,8 @@ interface IntroScreenProps {
 export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const circlesRef = useRef<HTMLDivElement[]>([]);
+  const logoRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -20,6 +21,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
     // Initial setup
     gsap.set(containerRef.current, { opacity: 0 });
     gsap.set(circlesRef.current, { scale: 0, opacity: 0 });
+    gsap.set(logoRef.current, { opacity: 0, scale: 0.5, rotation: -180 });
     gsap.set(textRef.current, { opacity: 0, y: 20 });
 
     // Entrance animation
@@ -34,6 +36,13 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
           from: "center"
         }
       })
+      .to(logoRef.current, {
+        opacity: 1,
+        scale: 1,
+        rotation: 0,
+        duration: 1.5,
+        ease: "elastic.out(1, 0.5)"
+      }, "-=1")
       .to(textRef.current, {
         opacity: 1,
         y: 0,
@@ -90,6 +99,13 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
         from: "center"
       }
     })
+    .to(logoRef.current, {
+      scale: 0,
+      opacity: 0,
+      rotation: 180,
+      duration: 0.8,
+      ease: "power2.in"
+    }, "-=0.6")
     .to(textRef.current, {
       opacity: 0,
       y: -20,
@@ -107,11 +123,26 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-600 cursor-pointer"
+      className="fixed inset-0 z-50 flex items-center justify-center cursor-pointer overflow-hidden"
       onClick={handleEnter}
     >
+      {/* Plasma Background */}
+      <div className="absolute inset-0">
+        <Plasma
+          color="#0066ff"
+          speed={1}
+          direction="forward"
+          scale={1}
+          opacity={0.8}
+          mouseInteractive={true}
+        />
+      </div>
+
+      {/* Dark overlay for better contrast */}
+      <div className="absolute inset-0 bg-black/30"></div>
+
       {/* Geometric Circle Pattern */}
-      <div className="relative w-96 h-96">
+      <div className="relative w-96 h-96 z-10">
         {/* Outer circles */}
         {[...Array(8)].map((_, i) => {
           const angle = (i * 45) * (Math.PI / 180);
@@ -123,7 +154,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
             <div
               key={`outer-${i}`}
               ref={addToCircleRefs}
-              className="absolute w-24 h-24 border border-white/30 rounded-full"
+              className="absolute w-24 h-24 border border-white/30 rounded-full backdrop-blur-sm"
               style={{
                 left: '50%',
                 top: '50%',
@@ -144,7 +175,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
             <div
               key={`inner-${i}`}
               ref={addToCircleRefs}
-              className="absolute w-16 h-16 border border-white/40 rounded-full"
+              className="absolute w-16 h-16 border border-white/40 rounded-full backdrop-blur-sm"
               style={{
                 left: '50%',
                 top: '50%',
@@ -157,27 +188,35 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
         {/* Center circle */}
         <div
           ref={addToCircleRefs}
-          className="absolute w-32 h-32 border-2 border-white/60 rounded-full left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
+          className="absolute w-32 h-32 border-2 border-white/60 rounded-full left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 backdrop-blur-sm"
         />
 
-        {/* Click to Enter Button */}
-        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 group pointer-events-none">
-          <div
-            ref={textRef}
-            className="text-white text-sm font-medium tracking-[0.2em] uppercase opacity-0 group-hover:text-cyan-200 transition-colors duration-300"
-            //style={{ fontFamily: 'Neo Sans Pro, Inter, sans-serif' }}
-          >
-            <AnimatedHeading text="Welcome to the Universe" />
+        {/* Circular Logo */}
+        <div 
+          ref={logoRef}
+          className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+        >
+          <CurvedLogo
+            topText="T.B.D"
+            bottomText="SOLUTION"
+            radius={100}
+            animated={false}
+          />
+        </div>
+
+        {/* Click to Enter Text */}
+        <div 
+          ref={textRef}
+          className="absolute left-1/2 top-[calc(50%+160px)] transform -translate-x-1/2 pointer-events-none"
+        >
+          <div className="text-white text-sm font-medium tracking-[0.2em] uppercase backdrop-blur-sm bg-black/20 px-4 py-2 rounded-full">
             CLICK TO ENTER
           </div>
         </div>
-
-        {/* Subtle glow effects */}
-        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/20 to-cyan-500/10 rounded-full blur-3xl"></div>
       </div>
 
       {/* Background particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
         {[...Array(20)].map((_, i) => (
           <div
             key={i}
