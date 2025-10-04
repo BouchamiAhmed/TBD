@@ -224,12 +224,12 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
 
   const renderTechStackSlide = () => {
     const technologies = [
-      { name: 'K3s', url: 'https://cncf-branding.netlify.app/img/projects/k3s/icon/color/k3s-icon-color.svg' },
-      { name: 'Traefik', url: 'https://raw.githubusercontent.com/cncf/artwork/master/projects/traefik/icon/color/traefik-icon-color.svg' },
+      { name: 'K3s', url: 'https://www.cncf.io/wp-content/uploads/2020/08/k3s-300x294.png' },
+       { name: 'Traefik', url: 'https://doc.traefik.io/traefik/assets/img/traefik.logo.png' },
       { name: 'PostgreSQL', url: 'https://www.postgresql.org/media/img/about/press/elephant.png' },
       { name: 'Longhorn', url: 'https://raw.githubusercontent.com/cncf/artwork/master/projects/longhorn/icon/color/longhorn-icon-color.svg' },
       { name: 'Prometheus', url: 'https://raw.githubusercontent.com/cncf/artwork/master/projects/prometheus/icon/color/prometheus-icon-color.svg' },
-      { name: 'Grafana', url: 'https://raw.githubusercontent.com/cncf/artwork/master/projects/grafana/icon/color/grafana-icon-color.svg' },
+        { name: 'Grafana', url: 'https://upload.wikimedia.org/wikipedia/commons/a/a1/Grafana_logo.svg' },
       { name: 'Go', url: 'https://go.dev/blog/go-brand/Go-Logo/SVG/Go-Logo_Blue.svg' },
       { name: 'React', url: 'https://raw.githubusercontent.com/devicons/devicon/master/icons/react/react-original.svg' },
       { name: 'Jenkins', url: 'https://www.jenkins.io/images/logos/jenkins/jenkins.svg' },
@@ -273,7 +273,7 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
       case 'closing': return renderClosingSlide();
       default: 
         // Check if it's the tech stack slide (ID 19)
-        if (slide.id === 19) return renderTechStackSlide();
+        if (slide.id === 22) return renderTechStackSlide();
         return renderContentSlide();
     }
   };
