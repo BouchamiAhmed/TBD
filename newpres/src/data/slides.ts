@@ -248,20 +248,14 @@ export const presentationSlides: Slide[] = [
     title: '5️⃣ IMPLÉMENTATION',
     subtitle: 'Technologies & Réalisation technique',
   },
-  {
-    id: 22,
-    type: 'content',
-    title: 'Stack Technologique',
-    content: 'Technologies et outils utilisés pour la plateforme.',
-    points: [
-      'K3s v1.28: Kubernetes léger optimisé',
-      'Traefik v2.10: Reverse proxy cloud-native',
-      'Longhorn v1.5: Stockage distribué',
-      'Prometheus v2.45: Monitoring + alerting',
-      'LDAP/AD: Authentification centralisée',
-      'Jenkins + ArgoCD: Pipeline CI/CD GitOps'
-    ]
-  },
+
+    {
+  id: 22,
+  type: 'content',
+  title: 'Stack Technologique',
+  content: 'Technologies cloud-native utilisées pour la plateforme DBaaS Enterprise',
+  points: []
+   },
   {
     id: 23,
     type: 'content',

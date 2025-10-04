@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { Slide as SlideType } from '../types';
-import { Award, Clock, BarChart3, TrendingUp, Users, Target, Image as ImageIcon } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, Target, Award, Clock } from 'lucide-react';
+import { TechLogo } from './TechLogo';
 
 interface SlideProps {
   slide: SlideType;
@@ -24,31 +25,26 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
       tl.set(slideRef.current, { opacity: 1, zIndex: 20 })
         .fromTo(slideRef.current, 
           { y: '100%' },
-          { y: '0%', duration: 0.75, ease: "power3.out" }
+          { y: '0%', duration: 0.6, ease: "power2.out" }
         )
         .fromTo(contentRef.current,
           { opacity: 0, y: 50 },
-          { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
-          "-=0.5"
+          { opacity: 1, y: 0, duration: 0.5, ease: "power1.out" },
+          "-=0.3"
         );
-elementsRef.current.forEach((el, index) => {
-  if (el) {
-    tl.fromTo(el,
-      { opacity: 0, scale: 0.8 },  // Start smaller
-      { 
-        opacity: 1, 
-        scale: 1,                    // Pop to full size
-        duration: 0.2,
-        ease: "back.out(1.4)",       // Slight overshoot
-        delay: index * 0.05
-      },
-      "-=0.4"
-    );
-  }
-});
+
+      elementsRef.current.forEach((el, index) => {
+        if (el) {
+          tl.fromTo(el,
+            { opacity: 0, scale: 0.8 },
+            { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.4)", delay: 0 },
+            "-=0.4"
+          );
+        }
+      });
 
     } else if (isPrev) {
-      tl.to(slideRef.current, { y: '-100%', opacity: 0, duration: 0.3, ease: "power3.in", zIndex: 10 });
+      tl.to(slideRef.current, { y: '-100%', opacity: 0, duration: 0.8, ease: "power3.in", zIndex: 10 });
     } else {
       tl.set(slideRef.current, { y: '100%', opacity: 0, zIndex: 0 });
     }
@@ -61,70 +57,6 @@ elementsRef.current.forEach((el, index) => {
       elementsRef.current.push(el);
     }
   };
-
-  // Add this import at the top if not already there
-
-// Add these render functions
-const renderImageSlide = () => (
-  <>
-    <div ref={addToRefs}>
-      <h2 className="text-5xl font-bold text-white mb-8 drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
-        {slide.title}
-      </h2>
-    </div>
-    {slide.subtitle && (
-      <div ref={addToRefs}>
-        <p className="text-xl text-white/90 mb-8 max-w-4xl mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
-          {slide.subtitle}
-        </p>
-      </div>
-    )}
-    {slide.image && (
-      <div ref={addToRefs} className="flex justify-center max-w-5xl mx-auto mb-8">
-        <img 
-          src={slide.image} 
-          alt={slide.title}
-          className="max-w-full h-auto rounded-2xl shadow-2xl border border-white/20"
-        />
-      </div>
-    )}
-    {slide.points && (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
-        {slide.points.map((point, index) => (
-          <div key={index} ref={addToRefs} className="backdrop-blur-md bg-white/10 rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all">
-            <div className="flex items-start space-x-4">
-              <p className="text-white text-lg" style={{ fontFamily: 'Inter, sans-serif' }}>{point}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    )}
-  </>
-);
-
-const renderDividerSlide = () => (
-  <>
-    <div ref={addToRefs} className="mb-8">
-      <div className="text-8xl font-black text-white drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
-        {slide.sectionNumber}
-      </div>
-    </div>
-    <div ref={addToRefs}>
-      <h2 className="text-6xl font-black text-white mb-8 drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
-        {slide.title}
-      </h2>
-    </div>
-    {slide.subtitle && (
-      <div ref={addToRefs}>
-        <p className="text-2xl text-white/90 max-w-3xl mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
-          {slide.subtitle}
-        </p>
-      </div>
-    )}
-  </>
-);
-
-  
 
   const renderTitleSlide = () => (
     <>
@@ -172,6 +104,65 @@ const renderDividerSlide = () => (
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </>
+  );
+
+  const renderImageSlide = () => (
+    <>
+      <div ref={addToRefs}>
+        <h2 className="text-5xl font-bold text-white mb-8 drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
+          {slide.title}
+        </h2>
+      </div>
+      {slide.content && (
+        <div ref={addToRefs}>
+          <p className="text-xl text-white/90 mb-8 max-w-4xl mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
+            {slide.content}
+          </p>
+        </div>
+      )}
+      {slide.image && (
+        <div ref={addToRefs} className="flex justify-center max-w-5xl mx-auto mb-8">
+          <img 
+            src={slide.image} 
+            alt={slide.title}
+            className="max-w-full h-auto rounded-2xl shadow-2xl border border-white/20"
+          />
+        </div>
+      )}
+      {slide.points && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+          {slide.points.map((point, index) => (
+            <div key={index} ref={addToRefs} className="backdrop-blur-md bg-white/10 rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all">
+              <div className="flex items-start space-x-4">
+                <p className="text-white text-lg" style={{ fontFamily: 'Inter, sans-serif' }}>{point}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+
+  const renderDividerSlide = () => (
+    <>
+      <div ref={addToRefs} className="mb-8">
+        <div className="text-8xl font-black text-white drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
+          {slide.sectionNumber}
+        </div>
+      </div>
+      <div ref={addToRefs}>
+        <h2 className="text-6xl font-black text-white mb-8 drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
+          {slide.title}
+        </h2>
+      </div>
+      {slide.subtitle && (
+        <div ref={addToRefs}>
+          <p className="text-2xl text-white/90 max-w-3xl mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
+            {slide.subtitle}
+          </p>
         </div>
       )}
     </>
@@ -231,13 +222,59 @@ const renderDividerSlide = () => (
     </>
   );
 
+  const renderTechStackSlide = () => {
+    const technologies = [
+      { name: 'K3s', url: 'https://cncf-branding.netlify.app/img/projects/k3s/icon/color/k3s-icon-color.svg' },
+      { name: 'Traefik', url: 'https://raw.githubusercontent.com/cncf/artwork/master/projects/traefik/icon/color/traefik-icon-color.svg' },
+      { name: 'PostgreSQL', url: 'https://www.postgresql.org/media/img/about/press/elephant.png' },
+      { name: 'Longhorn', url: 'https://raw.githubusercontent.com/cncf/artwork/master/projects/longhorn/icon/color/longhorn-icon-color.svg' },
+      { name: 'Prometheus', url: 'https://raw.githubusercontent.com/cncf/artwork/master/projects/prometheus/icon/color/prometheus-icon-color.svg' },
+      { name: 'Grafana', url: 'https://raw.githubusercontent.com/cncf/artwork/master/projects/grafana/icon/color/grafana-icon-color.svg' },
+      { name: 'Go', url: 'https://go.dev/blog/go-brand/Go-Logo/SVG/Go-Logo_Blue.svg' },
+      { name: 'React', url: 'https://raw.githubusercontent.com/devicons/devicon/master/icons/react/react-original.svg' },
+      { name: 'Jenkins', url: 'https://www.jenkins.io/images/logos/jenkins/jenkins.svg' },
+      { name: 'ArgoCD', url: 'https://raw.githubusercontent.com/cncf/artwork/master/projects/argo/icon/color/argo-icon-color.svg' },
+    ];
+
+    return (
+      <>
+        <div ref={addToRefs}>
+          <h2 className="text-5xl font-bold text-white mb-8 drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
+            {slide.title}
+          </h2>
+        </div>
+        
+        {slide.content && (
+          <div ref={addToRefs}>
+            <p className="text-xl text-white/90 mb-12 max-w-4xl mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
+              {slide.content}
+            </p>
+          </div>
+        )}
+
+        {/* Tech Stack Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 max-w-6xl mx-auto">
+          {technologies.map((tech) => (
+            <div key={tech.name} ref={addToRefs}>
+              <TechLogo name={tech.name} url={tech.url} />
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  };
+
   const renderContent = () => {
     switch (slide.type) {
-   case 'title': return renderTitleSlide();
-    case 'image': return renderImageSlide();  // ✅ ADD THIS LINE
-    case 'stats': return renderStatsSlide();
-    case 'closing': return renderClosingSlide();
-    default: return renderContentSlide();
+      case 'title': return renderTitleSlide();
+      case 'image': return renderImageSlide();
+      case 'divider': return renderDividerSlide();
+      case 'stats': return renderStatsSlide();
+      case 'closing': return renderClosingSlide();
+      default: 
+        // Check if it's the tech stack slide (ID 19)
+        if (slide.id === 19) return renderTechStackSlide();
+        return renderContentSlide();
     }
   };
 
