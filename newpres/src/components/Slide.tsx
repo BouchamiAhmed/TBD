@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { Slide as SlideType } from '../types';
-import { BarChart3, TrendingUp, Users, Target, Award, Clock } from 'lucide-react';
+import { Award, Clock, BarChart3, TrendingUp, Users, Target, Image as ImageIcon } from 'lucide-react';
 
 interface SlideProps {
   slide: SlideType;
@@ -56,6 +56,57 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
       elementsRef.current.push(el);
     }
   };
+
+  // Add this import at the top if not already there
+
+// Add these render functions
+const renderImageSlide = () => (
+  <>
+    <div ref={addToRefs}>
+      <h2 className="text-5xl font-bold text-white mb-8 drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
+        {slide.title}
+      </h2>
+    </div>
+    {slide.content && (
+      <div ref={addToRefs}>
+        <p className="text-xl text-white/90 mb-8 max-w-4xl mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
+          {slide.content}
+        </p>
+      </div>
+    )}
+    {slide.image && (
+      <div ref={addToRefs} className="flex justify-center max-w-5xl mx-auto">
+        <img 
+          src={slide.image} 
+          alt={slide.title}
+          className="max-w-full h-auto rounded-2xl shadow-2xl border border-white/20"
+        />
+      </div>
+    )}
+  </>
+);
+
+const renderDividerSlide = () => (
+  <>
+    <div ref={addToRefs} className="mb-8">
+      <div className="text-8xl font-black text-white drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
+        {slide.sectionNumber}
+      </div>
+    </div>
+    <div ref={addToRefs}>
+      <h2 className="text-6xl font-black text-white mb-8 drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
+        {slide.title}
+      </h2>
+    </div>
+    {slide.subtitle && (
+      <div ref={addToRefs}>
+        <p className="text-2xl text-white/90 max-w-3xl mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
+          {slide.subtitle}
+        </p>
+      </div>
+    )}
+  </>
+);
 
   
 
