@@ -24,26 +24,31 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
       tl.set(slideRef.current, { opacity: 1, zIndex: 20 })
         .fromTo(slideRef.current, 
           { y: '100%' },
-          { y: '0%', duration: 1, ease: "power3.out" }
+          { y: '0%', duration: 0.75, ease: "power3.out" }
         )
         .fromTo(contentRef.current,
           { opacity: 0, y: 50 },
-          { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" },
+          { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
           "-=0.5"
         );
-
-      elementsRef.current.forEach((el, index) => {
-        if (el) {
-          tl.fromTo(el,
-            { opacity: 0, y: 30 },
-            { opacity: 1, y: 0, duration: 0.6, ease: "power2.out", delay: index * 0.1 },
-            "-=0.4"
-          );
-        }
-      });
+elementsRef.current.forEach((el, index) => {
+  if (el) {
+    tl.fromTo(el,
+      { opacity: 0, scale: 0.8 },  // Start smaller
+      { 
+        opacity: 1, 
+        scale: 1,                    // Pop to full size
+        duration: 0.2,
+        ease: "back.out(1.4)",       // Slight overshoot
+        delay: index * 0.05
+      },
+      "-=0.4"
+    );
+  }
+});
 
     } else if (isPrev) {
-      tl.to(slideRef.current, { y: '-100%', opacity: 0, duration: 0.8, ease: "power3.in", zIndex: 10 });
+      tl.to(slideRef.current, { y: '-100%', opacity: 0, duration: 0.3, ease: "power3.in", zIndex: 10 });
     } else {
       tl.set(slideRef.current, { y: '100%', opacity: 0, zIndex: 0 });
     }
@@ -67,20 +72,31 @@ const renderImageSlide = () => (
         {slide.title}
       </h2>
     </div>
-    {slide.content && (
+    {slide.subtitle && (
       <div ref={addToRefs}>
         <p className="text-xl text-white/90 mb-8 max-w-4xl mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
-          {slide.content}
+          {slide.subtitle}
         </p>
       </div>
     )}
     {slide.image && (
-      <div ref={addToRefs} className="flex justify-center max-w-5xl mx-auto">
+      <div ref={addToRefs} className="flex justify-center max-w-5xl mx-auto mb-8">
         <img 
           src={slide.image} 
           alt={slide.title}
           className="max-w-full h-auto rounded-2xl shadow-2xl border border-white/20"
         />
+      </div>
+    )}
+    {slide.points && (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+        {slide.points.map((point, index) => (
+          <div key={index} ref={addToRefs} className="backdrop-blur-md bg-white/10 rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all">
+            <div className="flex items-start space-x-4">
+              <p className="text-white text-lg" style={{ fontFamily: 'Inter, sans-serif' }}>{point}</p>
+            </div>
+          </div>
+        ))}
       </div>
     )}
   </>
@@ -217,10 +233,11 @@ const renderDividerSlide = () => (
 
   const renderContent = () => {
     switch (slide.type) {
-      case 'title': return renderTitleSlide();
-      case 'stats': return renderStatsSlide();
-      case 'closing': return renderClosingSlide();
-      default: return renderContentSlide();
+   case 'title': return renderTitleSlide();
+    case 'image': return renderImageSlide();  // ✅ ADD THIS LINE
+    case 'stats': return renderStatsSlide();
+    case 'closing': return renderClosingSlide();
+    default: return renderContentSlide();
     }
   };
 
