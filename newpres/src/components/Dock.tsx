@@ -16,6 +16,7 @@ export type DockItemData = {
   label: React.ReactNode;
   onClick: () => void;
   className?: string;
+  gradient?: string; // NEW: Support for gradient backgrounds
 };
 
 export type DockProps = {
@@ -38,6 +39,7 @@ type DockItemProps = {
   distance: number;
   baseItemSize: number;
   magnification: number;
+  gradient?: string; // NEW: Gradient prop
 };
 
 function DockItem({
@@ -48,7 +50,8 @@ function DockItem({
   spring,
   distance,
   magnification,
-  baseItemSize
+  baseItemSize,
+  gradient
 }: DockItemProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isHovered = useMotionValue(0);
@@ -64,6 +67,11 @@ function DockItem({
   const targetSize = useTransform(mouseDistance, [-distance, 0, distance], [baseItemSize, magnification, baseItemSize]);
   const size = useSpring(targetSize, spring);
 
+  // Use gradient if provided, otherwise use default dark background
+  const backgroundClass = gradient 
+    ? `bg-gradient-to-br ${gradient}` 
+    : 'bg-[#060010]';
+
   return (
     <motion.div
       ref={ref}
@@ -76,11 +84,22 @@ function DockItem({
       onFocus={() => isHovered.set(1)}
       onBlur={() => isHovered.set(0)}
       onClick={onClick}
-      className={`relative inline-flex items-center justify-center rounded-full bg-[#060010] border-neutral-700 border-2 shadow-md ${className}`}
+      className={`relative inline-flex items-center justify-center rounded-full ${backgroundClass} border-neutral-700 border-2 shadow-md hover:shadow-xl transition-shadow ${className}`}
       tabIndex={0}
       role="button"
       aria-haspopup="true"
     >
+      {/* Glow effect on hover for gradient items */}
+      {gradient && (
+        <motion.div
+          className={`absolute inset-0 bg-gradient-to-br ${gradient} rounded-full blur-lg opacity-0`}
+          style={{
+            opacity: useTransform(isHovered, [0, 1], [0, 0.6]),
+            scale: useTransform(isHovered, [0, 1], [0.8, 1.2])
+          }}
+        />
+      )}
+      
       {Children.map(children, child =>
         React.isValidElement(child)
           ? cloneElement(child as React.ReactElement<{ isHovered?: MotionValue<number> }>, { isHovered })
@@ -115,7 +134,7 @@ function DockLabel({ children, className = '', isHovered }: DockLabelProps) {
           animate={{ opacity: 1, y: -10 }}
           exit={{ opacity: 0, y: 0 }}
           transition={{ duration: 0.2 }}
-          className={`${className} absolute -top-6 left-1/2 w-fit whitespace-pre rounded-md border border-neutral-700 bg-[#060010] px-2 py-0.5 text-xs text-white`}
+          className={`${className} absolute -top-6 left-1/2 w-fit whitespace-pre rounded-md border border-neutral-700 bg-[#060010] px-2 py-0.5 text-xs text-white backdrop-blur-xl`}
           role="tooltip"
           style={{ x: '-50%' }}
         >
@@ -133,7 +152,7 @@ type DockIconProps = {
 };
 
 function DockIcon({ children, className = '' }: DockIconProps) {
-  return <div className={`flex items-center justify-center ${className}`}>{children}</div>;
+  return <div className={`flex items-center justify-center relative z-10 ${className}`}>{children}</div>;
 }
 
 export default function Dock({
@@ -164,7 +183,7 @@ export default function Dock({
           isHovered.set(0);
           mouseX.set(Infinity);
         }}
-        className={`${className} absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-end w-fit gap-4 rounded-2xl border-neutral-700 border-2 pb-2 px-4`}
+        className={`${className} absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-end w-fit gap-4 rounded-2xl border-neutral-700 border-2 pb-2 px-4 bg-black/30 backdrop-blur-2xl`}
         style={{ height: panelHeight }}
         role="toolbar"
         aria-label="Application dock"
@@ -174,6 +193,7 @@ export default function Dock({
             key={index}
             onClick={item.onClick}
             className={item.className}
+            gradient={item.gradient}
             mouseX={mouseX}
             spring={spring}
             distance={distance}

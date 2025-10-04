@@ -57,6 +57,8 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
     }
   };
 
+  
+
   const renderTitleSlide = () => (
     <>
       <div ref={addToRefs} className="mb-12">

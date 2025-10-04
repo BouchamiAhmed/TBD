@@ -1,6 +1,6 @@
 export interface Slide {
   id: number;
-  type: 'title' | 'content' | 'image' | 'stats' | 'closing';
+  type: 'title' | 'content' | 'image' | 'stats' | 'closing' | 'divider';
   title: string;
   subtitle?: string;
   content?: string;
@@ -12,6 +12,10 @@ export interface Slide {
   }>;
   image?: string;
   background?: string;
+  
+  // New fields for divider slides
+  sectionNumber?: number;
+  gradient?: string;
 }
 
 export interface PresentationProps {

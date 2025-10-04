@@ -7,6 +7,7 @@ import { ProgressBar } from './ProgressBar';
 import { PresentationProps } from '../types';
 import Plasma from './plasma';
 import TinyLogo from './TinyLogo';
+import SectionDock from './SectionDock';
 
 export const Presentation: React.FC<PresentationProps> = ({
   slides,
@@ -97,97 +98,82 @@ export const Presentation: React.FC<PresentationProps> = ({
 
   const nextSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev < slides.length - 1 ? prev + 1 : prev));
-  }, [slides.length]);
+    setTimeLeft(autoAdvanceTime);
+  }, [slides.length, autoAdvanceTime]);
 
   const prevSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev > 0 ? prev - 1 : prev));
-  }, []);
+    setTimeLeft(autoAdvanceTime);
+  }, [autoAdvanceTime]);
 
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying);
-    if (!isPlaying) {
-      setTimeLeft(autoAdvanceTime);
-    }
-  };
+  const selectSlide = useCallback((index: number) => {
+    setCurrentSlide(index);
+    setTimeLeft(autoAdvanceTime);
+  }, [autoAdvanceTime]);
 
-  const resetPresentation = () => {
+  const togglePlay = useCallback(() => {
+    setIsPlaying((prev) => !prev);
+    setTimeLeft(autoAdvanceTime);
+  }, [autoAdvanceTime]);
+
+  const resetPresentation = useCallback(() => {
     setCurrentSlide(0);
     setIsPlaying(false);
     setTimeLeft(autoAdvanceTime);
-  };
+  }, [autoAdvanceTime]);
 
-  const selectSlide = (index: number) => {
-    setCurrentSlide(index);
-    setTimeLeft(autoAdvanceTime);
-  };
-
+  // Auto-advance timer
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isPlaying && currentSlide < slides.length - 1) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 100) {
-            nextSlide();
-            return autoAdvanceTime;
-          }
-          return prev - 100;
-        });
-      }, 100);
-    }
+    if (!isPlaying || currentSlide === slides.length - 1) return;
 
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 100) {
+          nextSlide();
+          return autoAdvanceTime;
+        }
+        return prev - 100;
+      });
+    }, 100);
+
+    return () => clearInterval(interval);
   }, [isPlaying, currentSlide, slides.length, nextSlide, autoAdvanceTime]);
 
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
+      if (showIntro) return;
+      
       switch (e.key) {
         case 'ArrowRight':
         case ' ':
-          e.preventDefault();
           nextSlide();
           break;
         case 'ArrowLeft':
-          e.preventDefault();
           prevSlide();
           break;
         case 'Home':
-          e.preventDefault();
-          resetPresentation();
+          selectSlide(0);
+          break;
+        case 'End':
+          selectSlide(slides.length - 1);
           break;
         case 'p':
         case 'P':
-          e.preventDefault();
           togglePlay();
-          break;
-        case 'Escape':
-          e.preventDefault();
-          setIsPlaying(false);
-          break;
-        case 'f':
-        case 'F':
-          e.preventDefault();
-          if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-          } else {
-            document.exitFullscreen();
-          }
           break;
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [nextSlide, prevSlide]);
+  }, [showIntro, nextSlide, prevSlide, selectSlide, togglePlay, slides.length]);
 
-  const progress = ((currentSlide + 1) / slides.length) * 100;
-  const timeProgress = isPlaying && currentSlide < slides.length - 1 
+  const timeProgress = isPlaying && currentSlide < slides.length - 1
     ? ((autoAdvanceTime - timeLeft) / autoAdvanceTime) * 100 
     : 0;
+
+  const progress = (currentSlide / (slides.length - 1)) * 100;
 
   if (showIntro) {
     return <IntroScreen onEnter={handleEnterPresentation} />;
@@ -216,11 +202,11 @@ export const Presentation: React.FC<PresentationProps> = ({
       <div className="absolute inset-0 bg-black/30 z-1" />
 
       {/* TINY LOGO - Top Left on Every Slide */}
-      {/* Change size: 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '1xl' | '2xl' | '3xl' */}
       <TinyLogo animated={true} size="1xl" />
 
       <ProgressBar progress={progress} isPlaying={isPlaying} />
       
+      {/* Auto-advance timer indicator */}
       {isPlaying && currentSlide < slides.length - 1 && (
         <div className="fixed top-6 right-6 z-50">
           <div className="w-16 h-16 relative">
@@ -249,18 +235,18 @@ export const Presentation: React.FC<PresentationProps> = ({
         </div>
       )}
 
+      {/* Slides */}
       <div className="relative w-full h-full z-10" style={{ perspective: '1000px' }}>
         {slides.map((slide, index) => (
           <Slide
             key={slide.id}
             slide={slide}
             isActive={index === currentSlide}
-            isNext={index === currentSlide + 1}
-            isPrev={index === currentSlide - 1}
           />
         ))}
       </div>
 
+      {/* Navigation */}
       <Navigation
         currentSlide={currentSlide}
         totalSlides={slides.length}
@@ -270,6 +256,12 @@ export const Presentation: React.FC<PresentationProps> = ({
         onTogglePlay={togglePlay}
         onReset={resetPresentation}
         onSlideSelect={selectSlide}
+      />
+
+      {/* Section Dock with Gradients - VERTICAL on LEFT side */}
+      <SectionDock 
+        currentSlide={currentSlide}
+        onSectionChange={selectSlide}
       />
     </div>
   );

@@ -46,11 +46,18 @@ export default {
             backgroundPosition: '350% 50%, 350% 50%',
           },
         },
+        // Gradient animation for TinyLogo
+        gradient: {
+          '0%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+          '100%': { backgroundPosition: '0% 50%' },
+        },
       },
       animation: {
         'glitch-after': 'glitch var(--after-duration) infinite linear alternate-reverse',
         'glitch-before': 'glitch var(--before-duration) infinite linear alternate-reverse',
         'aurora': 'aurora 60s linear infinite',
+        'gradient': 'gradient 8s linear infinite',
       },
     },
   },

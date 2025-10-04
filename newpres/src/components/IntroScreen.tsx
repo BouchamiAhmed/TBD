@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-import GlitchText from './GlitchText';
+import GradientText from './GradientText';
 import Plasma from './plasma';
 
 interface IntroScreenProps {
@@ -11,18 +11,17 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
   const clickTextRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     const tl = gsap.timeline();
 
-    // Initial setup
     gsap.set(containerRef.current, { opacity: 0 });
     gsap.set(textRef.current, { opacity: 0, scale: 0.8 });
     gsap.set(clickTextRef.current, { opacity: 0 });
 
-    // Entrance animation
     tl.to(containerRef.current, { opacity: 1, duration: 0.5 })
       .to(textRef.current, {
         opacity: 1,
@@ -36,7 +35,6 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
         ease: "power2.out"
       }, "+=0.5");
 
-    // Pulse animation for click text
     gsap.to(clickTextRef.current, {
       opacity: 0.6,
       duration: 1.5,
@@ -58,7 +56,6 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
       onComplete: onEnter
     });
 
-    // Exit animation
     tl.to(textRef.current, {
       scale: 0,
       opacity: 0,
@@ -84,7 +81,6 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
       className="fixed inset-0 z-50 flex items-center justify-center cursor-pointer overflow-hidden"
       onClick={handleEnter}
     >
-      {/* Plasma Background */}
       <div className="absolute inset-0">
         <Plasma
           color="#0066ff"
@@ -96,25 +92,57 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
         />
       </div>
 
-      {/* Dark overlay for contrast */}
       <div className="absolute inset-0 bg-black/30"></div>
 
-      {/* Content */}
       <div className="relative z-10 text-center">
-        {/* Main Text with Glitch Effect - Brockmann Font */}
-        <div ref={textRef} className="mb-16">
-          <GlitchText
-            speed={3}
-            enableShadows={true}
-            enableOnHover={true}
-            className="text-9xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent"
-            style={{ fontFamily: 'Brockmann, sans-serif', fontWeight: 700 }}
+        <div 
+          ref={textRef} 
+          className="mb-16 relative"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <GradientText
+            colors={['#ffffff', '#3b82f6', '#ff0066', '#8b5cf6', '#ffffff']}
+            animationSpeed={8}
+            showBorder={false}
           >
-            T.B.D
-          </GlitchText>
+            <span 
+              className="text-9xl font-black"
+              style={{ fontFamily: 'Brockmann, sans-serif' }}
+            >
+              T.B.D
+            </span>
+          </GradientText>
+          
+          {isHovered && (
+            <>
+              <div 
+                className="absolute inset-0 top-0 left-0 pointer-events-none animate-pulse"
+                style={{
+                  textShadow: '-3px 0 rgba(255, 0, 100, 0.8)',
+                  mixBlendMode: 'screen'
+                }}
+              >
+                <span className="text-9xl font-black text-transparent" style={{ fontFamily: 'Brockmann, sans-serif' }}>
+                  T.B.D
+                </span>
+              </div>
+              <div 
+                className="absolute inset-0 top-0 left-0 pointer-events-none animate-pulse"
+                style={{
+                  textShadow: '3px 0 rgba(0, 255, 255, 0.8)',
+                  mixBlendMode: 'screen',
+                  animationDelay: '0.1s'
+                }}
+              >
+                <span className="text-9xl font-black text-transparent" style={{ fontFamily: 'Brockmann, sans-serif' }}>
+                  T.B.D
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Click to Enter */}
         <div ref={clickTextRef} className="opacity-0">
           <div className="text-white text-sm font-medium tracking-[0.3em] uppercase backdrop-blur-sm bg-white/10 px-6 py-3 rounded-full border border-white/20 inline-block">
             CLICK TO ENTER
@@ -122,7 +150,6 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
         </div>
       </div>
 
-      {/* Minimal floating particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
         {[...Array(10)].map((_, i) => (
           <div
