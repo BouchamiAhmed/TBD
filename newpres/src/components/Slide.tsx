@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { Slide as SlideType } from '../types';
 import { BarChart3, TrendingUp, Users, Target, Award, Clock } from 'lucide-react';
-import { TechLogo } from './TechLogo';
+import { TechLogo } from './Techlogo';
 
 interface SlideProps {
   slide: SlideType;
