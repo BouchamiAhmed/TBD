@@ -224,7 +224,7 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
 
   const renderTechStackSlide = () => {
     const technologies = [
-      { name: 'K3s', url: 'https://www.cncf.io/wp-content/uploads/2020/08/k3s-300x294.png' },
+      { name: 'K3s', url: '/images/k3slogo.png'},
        { name: 'Traefik', url: 'https://doc.traefik.io/traefik/assets/img/traefik.logo.png' },
       { name: 'PostgreSQL', url: 'https://www.postgresql.org/media/img/about/press/elephant.png' },
       { name: 'Longhorn', url: 'https://raw.githubusercontent.com/cncf/artwork/master/projects/longhorn/icon/color/longhorn-icon-color.svg' },

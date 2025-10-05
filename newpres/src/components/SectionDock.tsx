@@ -125,50 +125,50 @@ const SectionDock: React.FC<SectionDockProps> = ({ onSectionChange }) => {
   const dockRef = useRef<HTMLDivElement>(null);
 
   // TODO: Update slideStart values when slides.ts is finalized
-  const sections = [
-    { 
-      number: 1, 
-      label: 'Introduction', 
-      icon: BookOpen, 
-      gradient: 'from-purple-500 to-indigo-600',
-      slideStart: 1  // TODO: Set correct slide index
-    },
-    { 
-      number: 2, 
-      label: 'Cadre du Projet', 
-      icon: Target, 
-      gradient: 'from-pink-500 to-rose-600',
-      slideStart: 1  // TODO: Set correct slide index
-    },
-    { 
-      number: 3, 
-      label: 'Spécification', 
-      icon: FileCheck, 
-      gradient: 'from-red-500 to-orange-600',
-      slideStart: 1  // TODO: Set correct slide index
-    },
-    { 
-      number: 4, 
-      label: 'Conception', 
-      icon: Layers, 
-      gradient: 'from-orange-500 to-yellow-600',
-      slideStart: 1  // TODO: Set correct slide index
-    },
-    { 
-      number: 5, 
-      label: 'Implémentation', 
-      icon: Code, 
-      gradient: 'from-yellow-500 to-amber-600',
-      slideStart: 1  // TODO: Set correct slide index
-    },
-    { 
-      number: 6, 
-      label: 'Conclusion', 
-      icon: Flag, 
-      gradient: 'from-cyan-500 to-blue-600',
-      slideStart: 1  // TODO: Set correct slide index
-    }
-  ];
+const sections = [
+  { 
+    number: 1, 
+    label: 'INTRODUCTION',  // ✅ Matches divider
+    icon: BookOpen, 
+    gradient: 'from-purple-500 to-indigo-600',
+    slideStart: 1
+  },
+  { 
+    number: 2, 
+    label: 'CADRE DU PROJET',  // ✅ Matches divider
+    icon: Target, 
+    gradient: 'from-pink-500 to-rose-600',
+    slideStart: 4
+  },
+  { 
+    number: 3, 
+    label: 'SPÉCIFICATION',  // ✅ Matches divider (shortened)
+    icon: FileCheck, 
+    gradient: 'from-red-500 to-orange-600',
+    slideStart: 9  // Adjust based on your slides.ts
+  },
+  { 
+    number: 4, 
+    label: 'CONCEPTION',  // ✅ Matches divider
+    icon: Layers, 
+    gradient: 'from-orange-500 to-yellow-600',
+    slideStart: 15
+  },
+  { 
+    number: 5, 
+    label: 'IMPLÉMENTATION',  // ✅ Matches divider (with accent)
+    icon: Code, 
+    gradient: 'from-yellow-500 to-amber-600',
+    slideStart: 21  // Adjust based on your slides.ts
+  },
+  { 
+    number: 6, 
+    label: 'CONCLUSION',  // ✅ Matches divider
+    icon: Flag, 
+    gradient: 'from-cyan-500 to-blue-600',
+    slideStart: 33
+  }
+];
 
   useEffect(() => {
     // Dock entrance animation

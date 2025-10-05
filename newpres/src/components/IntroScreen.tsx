@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import GradientText from './GradientText';
 import Plasma from './plasma';
+import TiltedCard from './TiltedCard';
 
 interface IntroScreenProps {
   onEnter: () => void;
@@ -164,6 +165,45 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onEnter }) => {
           />
         ))}
       </div>
+      <div className="absolute top-8 left-8 z-50">
+{/* ESPRIT Logo - Top Left with animated gradient ESP */}
+<div className="absolute top-8 left-8 z-50">
+  <div className="bg-white/99 backdrop-blur-md px-6 py-4 rounded-lg shadow-2xl">
+    <div className="flex items-center gap-0 font-black text-4xl tracking-tight">
+      {/* ESP - Animated Gradient like TBD */}
+      <span 
+        className="relative inline-block"
+        style={{ fontFamily: 'Arial, sans-serif', fontWeight: 900 }}
+      >
+        <span className="bg-gradient-to-r from-white via-red-300 to-white bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
+          Esp
+        </span>
+      </span>
+      {/* RI - Grey */}
+      <span className="text-gray-400" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 900 }}>
+        ri
+      </span>
+      {/* T - Grey with Red arrow */}
+      <span className="relative" style={{ fontFamily: 'Arial, sans-serif', fontWeight: 900 }}>
+        <span className="text-gray-400">t</span>
+        <span className="absolute -right-4 top-0 text-red-600 text-2xl">▶</span>
+      </span>
+    </div>
+  </div>
+  
+  {/* Gradient animation styles */}
+  <style jsx>{`
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .animate-gradient {
+      animation: gradient 8s linear infinite;
+    }
+  `}</style>
+</div>
+</div>
 
       <style>{`
         @keyframes float {
