@@ -3,6 +3,7 @@ import { gsap } from 'gsap';
 import { Slide as SlideType } from '../types';
 import { BarChart3, TrendingUp, Users, Target, Award, Clock } from 'lucide-react';
 import { TechLogo } from './Techlogo';
+import { ZoomableImage } from './ZoomableImage';
 
 interface SlideProps {
   slide: SlideType;
@@ -110,41 +111,41 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
   );
 
   const renderImageSlide = () => (
-    <>
+  <>
+    <div ref={addToRefs}>
+      <h2 className="text-5xl font-bold text-white mb-8 drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
+        {slide.title}
+      </h2>
+    </div>
+    {slide.content && (
       <div ref={addToRefs}>
-        <h2 className="text-5xl font-bold text-white mb-8 drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
-          {slide.title}
-        </h2>
+        <p className="text-xl text-white/90 mb-8 max-w-4xl mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
+          {slide.content}
+        </p>
       </div>
-      {slide.content && (
-        <div ref={addToRefs}>
-          <p className="text-xl text-white/90 mb-8 max-w-4xl mx-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
-            {slide.content}
-          </p>
-        </div>
-      )}
-      {slide.image && (
-        <div ref={addToRefs} className="flex justify-center max-w-5xl mx-auto mb-8">
-          <img 
-            src={slide.image} 
-            alt={slide.title}
-            className="max-w-full h-auto rounded-2xl shadow-2xl border border-white/20"
-          />
-        </div>
-      )}
-      {slide.points && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
-          {slide.points.map((point, index) => (
-            <div key={index} ref={addToRefs} className="backdrop-blur-md bg-white/10 rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all">
-              <div className="flex items-start space-x-4">
-                <p className="text-white text-lg" style={{ fontFamily: 'Inter, sans-serif' }}>{point}</p>
-              </div>
+    )}
+    {slide.image && (
+      <div ref={addToRefs} className="flex justify-center max-w-5xl mx-auto mb-8">
+        <ZoomableImage 
+          src={slide.image} 
+          alt={slide.title}
+          className="w-full"
+        />
+      </div>
+    )}
+    {slide.points && (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+        {slide.points.map((point, index) => (
+          <div key={index} ref={addToRefs} className="backdrop-blur-md bg-white/10 rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all">
+            <div className="flex items-start space-x-4">
+              <p className="text-white text-lg" style={{ fontFamily: 'Inter, sans-serif' }}>{point}</p>
             </div>
-          ))}
-        </div>
-      )}
-    </>
-  );
+          </div>
+        ))}
+      </div>
+    )}
+  </>
+);
 
   const renderDividerSlide = () => (
     <>
