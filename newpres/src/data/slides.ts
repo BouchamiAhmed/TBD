@@ -32,7 +32,7 @@ export const presentationSlides: Slide[] = [
       'Migration vers le cloud et architectures hybrides',
       'Besoin d\'automatisation et de self-service',
       'Exigences accrues de sécurité et conformité',
-      'Réduction des coûts opérationnels (FinOps)',
+      'Réduction des coûts opérationnels',
       'Time-to-market réduit pour les nouveaux services'
     ]
   },
@@ -92,12 +92,11 @@ export const presentationSlides: Slide[] = [
     title: 'Étude de l\'Existant',
     content: 'Analyse comparative des solutions d\'orchestration.',
     points: [
-      'Docker Compose: Pas de HA (60% adapté)',
-      'Docker Swarm: Écosystème limité (70%)',
-      'Kubernetes: Complexité élevée (85%)',
-      'K3s: Léger, HA native, production-ready (95%)',
-      'Choix: K3s + Traefik + Longhorn + Prometheus',
-      'Réduction de 40% complexité vs K8s standard'
+      '🔵 Amazon RDS: service pour bases relationnelles',
+      '🔵 Google Cloud SQL: solution managée pour MySQL/PostgreSQL/SQL Server',
+      '⚠️ Coûts élevés pour usage intensif ',
+      '⚠️ Vendor lock-in',
+      '⚠️ Manque de flexibilité de configuration',
     ]
   },
   {
@@ -110,7 +109,7 @@ export const presentationSlides: Slide[] = [
       'Traefik: SSL auto + load balancing intelligent',
       'Longhorn: Stockage distribué + réplication',
       'Prometheus Stack: Monitoring + alerting',
-      'LDAP/RBAC: Authentification centralisée',
+      'LDAP/RBAC/SSL: Authentification centralisée',
       'CI/CD: Jenkins + ArgoCD GitOps'
     ]
   },
@@ -156,28 +155,13 @@ export const presentationSlides: Slide[] = [
     title: 'Acteurs du Système',
     content: 'Trois types d\'utilisateurs avec permissions distinctes.',
     points: [
-      '👤 Client Externe: Consommateur de BDD (portail web)',
-      '👨‍💼 Client Interne: Équipes DevOps (API + CLI)',
-      '👨‍💻 Administrateur: Gestion plateforme (Kubectl + UI)',
-      'Permissions: Cluster Admin > Namespace Admin > Developer',
-      'Authentification: LDAP/AD + SSO',
-      'Audit: Logging complet de toutes les actions'
+      '👤 Client Externe: Consommateur de BDD (packOffer)',
+      '👨‍💼 Client Interne:  Consommateur de BDD (pay as you go)',
+      '👨‍💻 Administrateur: Gestion plateforme (Intervantion + UI)',
+      'Permissions: Cluster Admin > Namespace Admin',
     ]
   },
-  {
-    id: 13,
-    type: 'content',
-    title: 'Use Cases Principaux',
-    content: 'Scénarios d\'utilisation de la plateforme.',
-    points: [
-      '📊 Dev Team: Créer BDD de dev en < 60s',
-      '🚀 DevOps: Déployer env staging avec BDD répliquée',
-      '💼 Product Owner: Dashboard métriques temps réel',
-      '🔧 DBA: Backup automatique et restauration',
-      '📈 SRE: Monitoring proactif + auto-scaling',
-      '💰 Finance: Facturation par usage (chargeback)'
-    ]
-  },
+
   {
     id: 14,
     type: 'content',
@@ -199,6 +183,15 @@ export const presentationSlides: Slide[] = [
     type: 'title',
     title: '4️⃣ CONCEPTION',
     subtitle: 'Architecture & Modélisation',
+  },
+    {
+    id: 90,
+    type: 'image',
+    title: '3.1. Diagramme de cas d\'utilisation globale',
+    content: 'Vue d\'ensemble des interactions utilisateur-système',
+    image: '/diagrams/use-case-diagram.png',
+    points: [
+    ]
   },
   {
     id: 16,
@@ -276,7 +269,7 @@ export const presentationSlides: Slide[] = [
     title: 'LDAP & Contrôle d\'Accès',
     content: 'Authentification centralisée avec RBAC granulaire.',
     points: [
-      'Authentification LDAP/AD avec SSL (ldaps://)',
+      'Authentification LDAP avec SSl/TLS',
       'Mapping groupes LDAP → Rôles K8s RBAC',
       'Isolation multi-tenant: Admin, DevOps, Developer',
       'Autorisation 3 niveaux: Cluster, Namespace, Resource',
@@ -301,15 +294,15 @@ export const presentationSlides: Slide[] = [
   {
     id: 26,
     type: 'content',
-    title: 'Middlewares de Sécurité',
+    title: 'Middlewares Traefik de Sécurité',
     content: 'Couches de protection multi-niveaux.',
     points: [
       'Network Policies: Isolation trafic pod-to-pod',
       'PodSecurityPolicies: Contraintes runtime',
       'Rate Limiting: 100 req/s par IP',
-      'WAF: Protection OWASP Top 10',
-      'mTLS: Chiffrement service-to-service',
-      'Secret Management: Vault integration'
+      'Secret Management: Vault integration',
+      'Séparation par URL/URI',
+      'Regex Validation: Noms ressources K8s'
     ]
   },
   {
@@ -329,13 +322,13 @@ export const presentationSlides: Slide[] = [
   {
     id: 28,
     type: 'content',
-    title: 'GRPC Backdoor API',
+    title: 'GRPC Admin/servicetoservice API',
     content: 'API haute performance pour opérations critiques.',
     points: [
       'GRPC vs REST: 7x plus rapide',
       'Protobuf: Sérialisation binaire efficace',
       'Streaming bidirectionnel pour logs temps réel',
-      'mTLS obligatoire pour authentification',
+      'Network: HTTP/2 avec multiplexage isolée',
       'Opérations: CreateDB, DeleteDB, Backup, Restore',
       'Monitoring: Latence p50 < 10ms, p99 < 50ms'
     ]
@@ -346,12 +339,10 @@ export const presentationSlides: Slide[] = [
     title: 'Platform Engineering',
     content: 'Infrastructure as Code et self-service.',
     points: [
-      'Terraform: Provisioning infra cloud',
+      'Backup.yaml: Provisioning infra cloud',
       'Helm Charts: Packaging applications K8s',
       'Operators: Automation logique métier',
-      'Service Catalog: Self-service portal',
       'GitOps: ArgoCD pour déploiements',
-      'Golden Paths: Templates standardisés'
     ]
   },
   {
@@ -363,8 +354,6 @@ export const presentationSlides: Slide[] = [
       'Prometheus: Collecte métriques (15s scrape)',
       'Grafana: 20+ dashboards temps réel',
       'AlertManager: Routing (email, Slack, PagerDuty)',
-      'Loki: Centralisation logs aggregated',
-      'Jaeger: Distributed tracing',
       'SLOs: Uptime 99.95%, Latency p99 < 100ms'
     ]
   },
@@ -376,10 +365,6 @@ export const presentationSlides: Slide[] = [
     points: [
       'Réplication 3 copies sur nodes différents',
       'Snapshots automatiques: Quotidien + Hebdo',
-      'Backup vers S3: Encryption AES-256',
-      'Restore point-in-time en < 5 minutes',
-      'CSI Driver: Provisioning dynamique PVC',
-      'Performance: 10K IOPS, throughput 500MB/s'
     ]
   },
   {
@@ -390,10 +375,7 @@ export const presentationSlides: Slide[] = [
     points: [
       'Jenkins: Build, Test, Package (< 5 min)',
       'ArgoCD: GitOps deployment automatique',
-      'Helm: Versioning applications (semantic)',
-      'Canary Deployments: 10% → 50% → 100%',
-      'Rollback automatique si health check fail',
-      'Pipeline: Dev (auto) → Staging (auto) → Prod (approval)'
+      'Helm: Versioning applications (semantic)'
     ]
   },
 

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 
 interface ZoomableImageProps {
@@ -101,7 +101,7 @@ export const ZoomableImage: React.FC<ZoomableImageProps> = ({ src, alt, classNam
   return (
     <div 
       ref={containerRef}
-      className={`relative overflow-hidden ${className}`}
+      className={`relative overflow-hidden max-h-[80vh] max-w-full flex items-center justify-center ${className}`}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -113,7 +113,7 @@ export const ZoomableImage: React.FC<ZoomableImageProps> = ({ src, alt, classNam
       <img
         src={src}
         alt={alt}
-        className="max-w-full h-auto rounded-2xl shadow-2xl border border-white/20 select-none"
+        className="max-h-[80vh] max-w-full w-auto h-auto rounded-2xl shadow-2xl border border-white/20 select-none object-contain"
         style={{
           transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
           transformOrigin: '0 0',

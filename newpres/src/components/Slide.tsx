@@ -110,7 +110,7 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
     </>
   );
 
-  const renderImageSlide = () => (
+const renderImageSlide = () => (
   <>
     <div ref={addToRefs}>
       <h2 className="text-5xl font-bold text-white mb-8 drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -125,7 +125,7 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
       </div>
     )}
     {slide.image && (
-      <div ref={addToRefs} className="flex justify-center max-w-5xl mx-auto mb-8">
+      <div ref={addToRefs} className="flex justify-center max-w-6xl mx-auto mb-8">
         <ZoomableImage 
           src={slide.image} 
           alt={slide.title}
