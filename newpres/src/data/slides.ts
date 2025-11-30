@@ -1,5 +1,6 @@
 import { Slide } from '../types';
 
+
 export const PRESENTATION_FONT = {
   primary: "'Brockmann', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
   heading: "'Brockmann', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
@@ -75,6 +76,19 @@ export const presentationSlides: Slide[] = [
   {
     id: 6,
     type: 'content',
+    title: 'Étude de l\'Existant',
+    content: 'Analyse comparative des solutions d\'orchestration.',
+    points: [
+      '🔵 Amazon RDS: service pour bases relationnelles',
+      '🔵 Google Cloud SQL: solution managée pour MySQL/PostgreSQL/SQL Server',
+      '⚠️ Coûts élevés pour usage intensif ',
+      '⚠️ Vendor lock-in',
+      '⚠️ Manque de flexibilité de configuration',
+    ]
+  },
+  {
+    id: 7,
+    type: 'content',
     title: 'Contexte du Projet',
     content: 'Infrastructure traditionnelle de bases de données avec limitations critiques.',
     points: [
@@ -86,19 +100,7 @@ export const presentationSlides: Slide[] = [
       'Coûts opérationnels élevés (DevOps overhead)'
     ]
   },
-  {
-    id: 7,
-    type: 'content',
-    title: 'Étude de l\'Existant',
-    content: 'Analyse comparative des solutions d\'orchestration.',
-    points: [
-      '🔵 Amazon RDS: service pour bases relationnelles',
-      '🔵 Google Cloud SQL: solution managée pour MySQL/PostgreSQL/SQL Server',
-      '⚠️ Coûts élevés pour usage intensif ',
-      '⚠️ Vendor lock-in',
-      '⚠️ Manque de flexibilité de configuration',
-    ]
-  },
+
   {
     id: 8,
     type: 'content',
@@ -154,12 +156,6 @@ export const presentationSlides: Slide[] = [
     type: 'content',
     title: 'Acteurs du Système',
     content: 'Trois types d\'utilisateurs avec permissions distinctes.',
-    points: [
-      '👤 Client Externe: Consommateur de BDD (packOffer)',
-      '👨‍💼 Client Interne:  Consommateur de BDD (pay as you go)',
-      '👨‍💻 Administrateur: Gestion plateforme (Intervantion + UI)',
-      'Permissions: Cluster Admin > Namespace Admin',
-    ]
   },
 
   {
@@ -167,14 +163,7 @@ export const presentationSlides: Slide[] = [
     type: 'content',
     title: 'Méthodologie SCRUM',
     content: 'Approche agile avec sprints de 2 semaines.',
-    points: [
-      'Sprint 0: Planification générale (2 semaines)',
-      'Sprint 1: Infrastructure K3s HA (2 semaines)',
-      'Sprint 2: Stockage Longhorn + Backup (2 semaines)',
-      'Sprint 3: LDAP & Sécurité (2 semaines)',
-      'Sprint 4: Monitoring & Alerting (2 semaines)',
-      'Sprint 5: CI/CD Pipeline (2 semaines)'
-    ]
+
   },
 
   // ==================== SECTION 4: CONCEPTION ====================

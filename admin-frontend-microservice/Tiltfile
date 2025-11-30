@@ -1,0 +1,12 @@
+allow_k8s_contexts('rancher-desktop')
+
+custom_build(
+    'admin-frontend',
+    'nerdctl -n k8s.io build -t admin-frontend:latest .',
+    ['./src', './Dockerfile'],
+    disable_push=True,
+    tag='latest'
+)
+
+k8s_yaml('k8s-dev.yaml')
+k8s_resource('admin-frontend', port_forwards='3000:80')

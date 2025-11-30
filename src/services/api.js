@@ -2,10 +2,7 @@
 import { getAuthHeaders, clearAuth, getCurrentUser } from '../utils/auth';
 
 // Use relative URL - will work in both development and production
-// For production deployment
-
-// OR use environment variable
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://10.9.21.201:8080/api';
+const API_BASE_URL = '/api';
 
 class ApiService {
   constructor() {

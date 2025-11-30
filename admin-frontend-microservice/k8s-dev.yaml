@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: admin-frontend-dev
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-frontend
+  namespace: admin-frontend-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin-frontend
+  template:
+    metadata:
+      labels:
+        app: admin-frontend
+    spec:
+      containers:
+      - name: admin-frontend
+        image: admin-frontend
+        ports:
+        - containerPort: 80
+        env:
+        - name: REACT_APP_GRPC_URL
+          value: "http://10.9.21.201/admin-tbd"
+        - name: REACT_APP_BASE_PATH
+          value: "/admin-tbd"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-frontend
+  namespace: admin-frontend-dev
+spec:
+  selector:
+    app: admin-frontend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8089
+  type: LoadBalancer
