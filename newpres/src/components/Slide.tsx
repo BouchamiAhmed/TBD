@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, lazy, Suspense } from 'react';
 import { gsap } from 'gsap';
 import { Slide as SlideType } from '../types';
 import { BarChart3, TrendingUp, Users, Target, Award, Clock } from 'lucide-react';
@@ -7,6 +7,10 @@ import BounceCards from './BounceCards';
 import PixelTransition from './PixelTransition';
 import TiltedCard from './TiltedCard';
 import ScrollStack, { ScrollStackItem } from './ScrollStack';
+
+// Lazy load heavy components
+const InfiniteMenu = lazy(() => import('./InfiniteMenu'));
+const LetterGlitch = lazy(() => import('./Letterglitch'));
 
 interface SlideProps {
   slide: SlideType;
@@ -372,10 +376,9 @@ return  <>
         </h2>
         </div>
   }
-  gridSize={4}
-  pixelColor='#ffffff'
+  gridSize={25}
   once={true}
-  animationStepDuration={0.4}
+  animationStepDuration={0.9}
   className="custom-pixel-card"
   aspectRatio='10%'
   style={{marginBottom: '1rem'}}
@@ -398,15 +401,14 @@ return  <>
           </p>
         </div>
   }
-  gridSize={4}
-  pixelColor='#ffffff'
+  gridSize={22}
   once={true}
-  animationStepDuration={0.4}
+  animationStepDuration={0.6}
   className="custom-pixel-card"
   style={{marginBottom: '2rem',}}
   aspectRatio='20%'
 />
-      
+
       )}
       {slide.points && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
@@ -428,21 +430,214 @@ return  <>
                 <p className="text-white text-lg" style={{ fontFamily: 'Inter, sans-serif' }}>{array2[index]}</p>
               </div>
   }
-  gridSize={6}
-  pixelColor='#ffffff'
+  gridSize={12}
   once={true}
-  animationStepDuration={0.4}
-  key={index} 
-  className="backdrop-blur-md bg-white/10 rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all"  
+  animationStepDuration={0.55}
+  key={index}
+  className="backdrop-blur-md bg-white/10 rounded-2xl p-6 border border-white/20 hover:bg-white/15 transition-all"
   aspectRatio='9%'
 
 />
-            
-         
+
+
           ))}
         </div>
       )}
     </>
+  };
+
+  const renderFusedSection5Slide = () => {
+    // Vibrant color palette
+    const colors = [
+      '#2d8f5f', // K3s - Deep Green
+      '#61dca3', // LDAP - Bright Green
+      '#61b3dc', // Traefik - Sky Blue
+      '#7c86e0', // Security - Indigo
+      '#a855f7', // Multi-Tenant - Purple
+      '#f97316', // gRPC - Orange
+      '#10b981', // Platform - Emerald
+      '#0ea5e9', // Monitor - Cyan
+      '#ef4444', // Longhorn - Red
+      '#f59e0b'  // CI/CD - Amber
+    ];
+
+    // Menu items from slides 23-32 (no image needed - shader handles it!)
+    const menuItems = [
+      {
+        link: '#k3s',
+        title: 'K3s Embedded Etcd & HA',
+        bubbleTitle: 'K3s HA',
+        description: 'Configuration multi-master avec consensus Raft',
+        color: colors[0],
+        points: [
+          'Configuration 3 masters avec etcd embarqué',
+          'Élection automatique du leader < 10s',
+          'Basculement automatique (panne < 30s)',
+          'Snapshots automatiques du cluster state',
+          'Health checks: API (10s), Etcd (5s), Kubelet (10s)',
+          'Recovery automatique avec auto-healing'
+        ]
+      },
+      {
+        link: '#ldap',
+        title: 'LDAP & Contrôle d\'Accès',
+        bubbleTitle: 'LDAP',
+        description: 'Authentification centralisée avec RBAC granulaire',
+        color: colors[1],
+        points: [
+          'Authentification LDAP avec SSL/TLS',
+          'Mapping groupes LDAP → Rôles K8s RBAC',
+          'Isolation multi-tenant: Admin, DevOps, Developer',
+          'Autorisation 3 niveaux: Cluster, Namespace, Resource',
+          'Audit logging de toutes actions utilisateur',
+          'Alertes automatiques sur activités suspectes'
+        ]
+      },
+      {
+        link: '#traefik',
+        title: 'Traefik Load Balancing',
+        bubbleTitle: 'Traefik',
+        description: 'Proxy inverse cloud-native avec découverte auto',
+        color: colors[2],
+        points: [
+          'Découverte automatique des services K8s',
+          'SSL/TLS automatique avec Let\'s Encrypt',
+          'Load balancing: Round-robin, Weighted',
+          'Circuit breaker & rate limiting',
+          'Headers middleware: CORS, Security headers',
+          'Métriques Prometheus intégrées'
+        ]
+      },
+      {
+        link: '#middleware',
+        title: 'Middlewares Traefik',
+        bubbleTitle: 'Security',
+        description: 'Couches de protection multi-niveaux',
+        color: colors[3],
+        points: [
+          'Network Policies: Isolation trafic pod-to-pod',
+          'PodSecurityPolicies: Contraintes runtime',
+          'Rate Limiting: 100 req/s par IP',
+          'Secret Management: Vault integration',
+          'Séparation par URL/URI',
+          'Regex Validation: Noms ressources K8s'
+        ]
+      },
+      {
+        link: '#isolation',
+        title: 'Isolation Multi-Tenant',
+        bubbleTitle: 'Multi-Tenant',
+        description: 'Séparation forte entre clients et environnements',
+        color: colors[4],
+        points: [
+          'Namespaces K8s: Isolation logique',
+          'Resource Quotas: CPU, Memory, Storage limits',
+          'Network Policies: Zero-trust networking',
+          'RBAC: Permissions par namespace',
+          'Pod Security: runAsNonRoot, readOnlyRootFS',
+          'Audit: Logging séparé par tenant'
+        ]
+      },
+      {
+        link: '#grpc',
+        title: 'GRPC Admin API',
+        bubbleTitle: 'gRPC',
+        description: 'API haute performance pour opérations critiques',
+        color: colors[5],
+        points: [
+          'GRPC vs REST: 7x plus rapide',
+          'Protobuf: Sérialisation binaire efficace',
+          'Streaming bidirectionnel pour logs temps réel',
+          'Network: HTTP/2 avec multiplexage isolée',
+          'Opérations: CreateDB, DeleteDB, Backup, Restore',
+          'Monitoring: Latence p50 < 10ms, p99 < 50ms'
+        ]
+      },
+      {
+        link: '#platform',
+        title: 'Platform Engineering',
+        bubbleTitle: 'Platform',
+        description: 'Infrastructure as Code et self-service',
+        color: colors[6],
+        points: [
+          'Backup.yaml: Provisioning infra cloud',
+          'Helm Charts: Packaging applications K8s',
+          'Operators: Automation logique métier',
+          'GitOps: ArgoCD pour déploiements'
+        ]
+      },
+      {
+        link: '#monitoring',
+        title: 'Surveillance & Monitoring',
+        bubbleTitle: 'Monitor',
+        description: 'Observabilité complète de la plateforme',
+        color: colors[7],
+        points: [
+          'Prometheus: Collecte métriques (15s scrape)',
+          'Grafana: 20+ dashboards temps réel',
+          'AlertManager: Routing (email, Slack, PagerDuty)',
+          'SLOs: Uptime 99.95%, Latency p99 < 100ms'
+        ]
+      },
+      {
+        link: '#storage',
+        title: 'Longhorn Storage',
+        bubbleTitle: 'Longhorn',
+        description: 'Stockage distribué cloud-native avec HA',
+        color: colors[8],
+        points: [
+          'Réplication 3 copies sur nodes différents',
+          'Snapshots automatiques: Quotidien + Hebdo'
+        ]
+      },
+      {
+        link: '#cicd',
+        title: 'CI/CD Pipeline',
+        bubbleTitle: 'CI/CD',
+        description: 'Automatisation complète du déploiement',
+        color: colors[9],
+        points: [
+          'Jenkins: Build, Test, Package (< 5 min)',
+          'ArgoCD: GitOps deployment automatique',
+          'Helm: Versioning applications (semantic)'
+        ]
+      }
+    ];
+
+    // Only render heavy components when slide is active or adjacent
+    if (!isActive && !isNext && !isPrev) {
+      return (
+        <div className="flex items-center justify-center w-full h-full">
+          <div className="text-white text-2xl opacity-50">Interactive Menu</div>
+        </div>
+      );
+    }
+
+    return (
+      <Suspense fallback={
+        <div className="flex items-center justify-center w-full h-full">
+          <div className="text-white text-2xl">Chargement...</div>
+        </div>
+      }>
+        <div className="absolute inset-0 w-full h-full">
+          {/* Letterglitch Background - More transparent */}
+          <div className="absolute inset-0 w-full h-full z-0 opacity-40">
+            <LetterGlitch
+              glitchColors={['#2b4539', '#61dca3', '#61b3dc']}
+              glitchSpeed={50}
+              centerVignette={false}
+              outerVignette={true}
+              smooth={true}
+              characters="ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$&*()-_+=/[]{};:<>.,0123456789"
+            />
+          </div>
+          {/* InfiniteMenu on top */}
+          <div className="absolute inset-0 w-full h-full z-10 pointer-events-auto">
+            <InfiniteMenu items={menuItems} />
+          </div>
+        </div>
+      </Suspense>
+    );
   };
 
   const renderContent = () => {
@@ -452,8 +647,9 @@ return  <>
       case 'divider': return renderDividerSlide();
       case 'stats': return renderStatsSlide();
       case 'closing': return renderClosingSlide();
-      default: 
+      default:
         if (slide.id === 22) return renderTechStackSlide();
+        else if (slide.id === 23) return renderFusedSection5Slide();
         else if (slide.id === 7 ) return renderPixelTrans("Contexte du Projet",'Infrastructure traditionnelle de bases de données avec limitations critiques.',[
       'Provisioning manuel: 2-5 heures par instance',
       'Pas de haute disponibilité native',
