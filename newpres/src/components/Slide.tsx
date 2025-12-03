@@ -272,12 +272,11 @@ const renderImageSlide = () => (
   );
   const renderScrollStack = () =>{
     const points= [
-      {title: 'Sprint 0', subtitle: 'Planification générale (2 semaines)', image: ''},
-      {title: 'Sprint 1', subtitle: 'Infrastructure K3s HA (2 semaines)', image: ''},
-      {title: 'Sprint 2', subtitle: 'Stockage Longhorn + Backup (2 semaines)', image: ''},
-      {title: 'Sprint 3', subtitle: 'LDAP & Sécurité (2 semaines)', image: ''},
-      {title: 'Sprint 4', subtitle: 'Monitoring & Alerting (2 semaines)', image: ''},
-      {title: 'Sprint 5', subtitle: 'CI/CD Pipeline (2 semaines)', imaxge: ''}
+      {title: 'Sprint 1', subtitle: '4 semaines - Infrastructure de base pour la plateforme DBaaS'},
+      {title: 'Sprint 2', subtitle: '4 semaines - Monitoring et automatisation'},
+      {title: 'Sprint 3', subtitle: '4 semaines - Phase de métier'},
+      {title: 'Sprint 4', subtitle: '4 semaines - Isolation et routing'},
+      {title: 'Sprint 5', subtitle: '4 semaines - Phase clientèle et administration'}
     ]
 return <><div ref={addToRefs} style={{paddingTop: '5rem'}}>
           <h2 className="text-5xl font-bold text-white mb-8 drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
@@ -295,9 +294,6 @@ return <><div ref={addToRefs} style={{paddingTop: '5rem'}}>
       <h2>{point.title}</h2>
       <p>{point.subtitle}</p>
     </div>
-    <div className="stack-img-container">
-      <img src={point.image} />
-    </div>
   </ScrollStackItem>
   ))}
 </ScrollStack>
@@ -305,9 +301,9 @@ return <><div ref={addToRefs} style={{paddingTop: '5rem'}}>
   }
   const renderTitledCards = () => {
     const points = [
-      {overlayContent: 'Client Externe - Pack offer', captionText: 'Namespace Permission Level', imageUrl: '/images/external.svg'},
-      {overlayContent: 'Client Interne - Pay as you go', captionText: 'Namespace Permission Level', imageUrl: '/images/internal.svg'},
-      {overlayContent: 'Administrateur - Intervantion + UI', captionText: 'Cluster Permission Level', imageUrl: '/images/admin.svg'},
+      {overlayContent: 'Client Interne - Pay as you go', captionText: 'Namespace Permission Level', imageUrl: '/images/userinterne.svg'},
+      {overlayContent: 'Client Externe - Pack offer', captionText: 'Namespace Permission Level', imageUrl: '/images/userexterne.svg'},
+      {overlayContent: 'Administrateur - Intervention + UI', captionText: 'Cluster Permission Level', imageUrl: '/images/admin.svg'},
     ]
     return<> <div ref={addToRefs}>
           <h2 className="text-5xl font-bold text-white mb-8 drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
