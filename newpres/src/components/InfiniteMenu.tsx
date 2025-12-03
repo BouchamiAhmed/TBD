@@ -833,23 +833,20 @@ class InfiniteGridMenu {
       this.discBuffers.indices
     );
 
-    // Create ordered spherical arrangement (globe structure) for sequential navigation
+    // Create ordered horizontal ring arrangement (y = 0) for sequential navigation
     const itemCount = Math.max(1, this.items.length);
     this.DISC_INSTANCE_COUNT = itemCount;
     this.instancePositions = [];
 
-    // Fibonacci sphere distribution for even spacing
-    const goldenRatio = (1 + Math.sqrt(5)) / 2;
-    const angleIncrement = Math.PI * 2 * goldenRatio;
+    // Distribute bubbles evenly on horizontal circle
+    const angleIncrement = (Math.PI * 2) / itemCount;
 
     for (let i = 0; i < itemCount; i++) {
-      const t = i / itemCount;
-      const inclination = Math.acos(1 - 2 * t);
-      const azimuth = angleIncrement * i;
+      const angle = angleIncrement * i;
 
-      const x = Math.sin(inclination) * Math.cos(azimuth) * this.SPHERE_RADIUS;
-      const y = Math.sin(inclination) * Math.sin(azimuth) * this.SPHERE_RADIUS;
-      const z = Math.cos(inclination) * this.SPHERE_RADIUS;
+      const x = Math.cos(angle) * this.SPHERE_RADIUS;
+      const y = 0; // Zero y-axis - all bubbles on horizontal plane
+      const z = Math.sin(angle) * this.SPHERE_RADIUS;
 
       this.instancePositions.push(vec3.fromValues(x, y, z));
     }

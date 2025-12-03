@@ -7,6 +7,8 @@ import BounceCards from './BounceCards';
 import PixelTransition from './PixelTransition';
 import TiltedCard from './TiltedCard';
 import ScrollStack, { ScrollStackItem } from './ScrollStack';
+import RotatingText from './RotatingText';
+import GradientText from './GradientText';
 
 // Lazy load heavy components
 const InfiniteMenu = lazy(() => import('./InfiniteMenu'));
@@ -83,6 +85,37 @@ export const Slide: React.FC<SlideProps> = ({ slide, isActive, isNext, isPrev })
           </p>
         </div>
       )}
+      {slide.id === 0 && (
+        <div ref={addToRefs} className="mt-8">
+          <div className="text-2xl font-semibold flex items-center justify-center gap-3">
+            <RotatingText
+              texts={[
+                'Réalisé par :',
+                'Encadrante technique:',
+                'Encadrant technique:'
+              ]}
+              rotationInterval={3000}
+              splitBy="words"
+              mainClassName="inline-flex text-white"
+              transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+            />
+            <RotatingText
+              texts={[
+                'Moetez Marzouki',
+                'Hajer Bargaoui',
+                'Jazil Guesmi'
+              ]}
+              rotationInterval={3000}
+              splitBy="characters"
+              staggerDuration={0.03}
+              staggerFrom="first"
+              mainClassName="inline-flex bg-gradient-to-r from-blue-600/50 to-purple-600/50 backdrop-blur-sm px-4 py-2 rounded-lg text-white"
+              initial={{ y: '100%', opacity: 0, delay: 0.2 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 200, delay: 0.2 }}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 
@@ -133,11 +166,19 @@ const renderImageSlide = () => (
     )}
     {slide.image && (
       <div ref={addToRefs} className="flex justify-center max-w-6xl mx-auto mb-8">
-        <ZoomableImage 
-          src={slide.image} 
-          alt={slide.title}
-          className="w-full"
-        />
+        {slide.id === 5 ? (
+          <img
+            src={slide.image}
+            alt={slide.title}
+            className="w-full max-w-2xl rounded-2xl"
+          />
+        ) : (
+          <ZoomableImage
+            src={slide.image}
+            alt={slide.title}
+            className="w-full"
+          />
+        )}
       </div>
     )}
     {slide.points && (
@@ -640,6 +681,36 @@ return  <>
     );
   };
 
+  const renderK8sSlide = () => (
+    <>
+      <div ref={addToRefs} className="mb-8">
+        <h2 className="text-6xl font-black text-white drop-shadow-2xl" style={{ fontFamily: 'Inter, sans-serif' }}>
+          {slide.title}
+        </h2>
+      </div>
+      {slide.content && (
+        <div ref={addToRefs} className="mb-12">
+          <GradientText
+            colors={['#ffffff', '#3b82f6', '#a855f7', '#ffffff']}
+            animationSpeed={6}
+            showBorder={false}
+          >
+            <p className="text-2xl font-semibold" style={{ fontFamily: 'Inter, sans-serif' }}>
+              {slide.content}
+            </p>
+          </GradientText>
+        </div>
+      )}
+      <div ref={addToRefs} className="mt-12">
+        <img
+          src="/images/k8s logo.svg"
+          alt="Kubernetes Logo"
+          className="w-64 h-64 mx-auto animate-spin-slow"
+        />
+      </div>
+    </>
+  );
+
   const renderContent = () => {
     switch (slide.type) {
       case 'title': return renderTitleSlide();
@@ -650,6 +721,7 @@ return  <>
       default:
         if (slide.id === 22) return renderTechStackSlide();
         else if (slide.id === 23) return renderFusedSection5Slide();
+        else if (slide.id === 24) return renderK8sSlide();
         else if (slide.id === 7 ) return renderPixelTrans("Contexte du Projet",'Infrastructure traditionnelle de bases de données avec limitations critiques.',[
       'Provisioning manuel: 2-5 heures par instance',
       'Pas de haute disponibilité native',

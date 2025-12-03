@@ -100,7 +100,7 @@ export const presentationSlides: Slide[] = [
       'Coûts opérationnels élevés (DevOps overhead)'
     ]
   },
-
+/*
   {
     id: 8,
     type: 'content',
@@ -114,7 +114,7 @@ export const presentationSlides: Slide[] = [
       'LDAP/RBAC/SSL: Authentification centralisée',
       'CI/CD: Jenkins + ArgoCD GitOps'
     ]
-  },
+  },*/
 
   // ==================== SECTION 3: SPÉCIFICATION ====================
   {
@@ -251,21 +251,13 @@ export const presentationSlides: Slide[] = [
       'Health checks: API (10s), Etcd (5s), Kubelet (10s)',
       'Recovery automatique avec auto-healing'
     ]
-  },
+  }, 
   {
     id: 24,
     type: 'content',
-    title: 'LDAP & Contrôle d\'Accès',
-    content: 'Authentification centralisée avec RBAC granulaire.',
-    points: [
-      'Authentification LDAP avec SSl/TLS',
-      'Mapping groupes LDAP → Rôles K8s RBAC',
-      'Isolation multi-tenant: Admin, DevOps, Developer',
-      'Autorisation 3 niveaux: Cluster, Namespace, Resource',
-      'Audit logging de toutes actions utilisateur',
-      'Alertes automatiques sur activités suspectes'
-    ]
-  },
+    title: 'Démostration Technique',
+    content: 'Loading',
+  },/*
   {
     id: 25,
     type: 'content',
@@ -366,7 +358,7 @@ export const presentationSlides: Slide[] = [
       'ArgoCD: GitOps deployment automatique',
       'Helm: Versioning applications (semantic)'
     ]
-  },
+  },*/
 
   // ==================== SECTION 6: CONCLUSION ====================
   {

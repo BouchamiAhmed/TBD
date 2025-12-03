@@ -58,6 +58,7 @@ export default {
         'glitch-before': 'glitch var(--before-duration) infinite linear alternate-reverse',
         'aurora': 'aurora 60s linear infinite',
         'gradient': 'gradient 8s linear infinite',
+        'spin-slow': 'spin 20s linear infinite',
       },
     },
   },

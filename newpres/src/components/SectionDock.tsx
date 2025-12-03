@@ -145,28 +145,28 @@ const sections = [
     label: 'SPÉCIFICATION',  // ✅ Matches divider (shortened)
     icon: FileCheck, 
     gradient: 'from-red-500 to-orange-600',
-    slideStart: 9  // Adjust based on your slides.ts
+    slideStart: 8  // Adjust based on your slides.ts
   },
   { 
     number: 4, 
     label: 'CONCEPTION',  // ✅ Matches divider
     icon: Layers, 
     gradient: 'from-orange-500 to-yellow-600',
-    slideStart: 15
+    slideStart: 13
   },
   { 
     number: 5, 
     label: 'IMPLÉMENTATION',  // ✅ Matches divider (with accent)
     icon: Code, 
     gradient: 'from-yellow-500 to-amber-600',
-    slideStart: 21  // Adjust based on your slides.ts
+    slideStart: 20  // Adjust based on your slides.ts
   },
   { 
     number: 6, 
     label: 'CONCLUSION',  // ✅ Matches divider
     icon: Flag, 
     gradient: 'from-cyan-500 to-blue-600',
-    slideStart: 33
+    slideStart: 24
   }
 ];
 
