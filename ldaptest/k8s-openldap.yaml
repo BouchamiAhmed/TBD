@@ -1,0 +1,208 @@
+---
+# Namespace for OpenLDAP
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openldap
+
+---
+# PersistentVolumeClaim for LDAP data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openldap-data
+  namespace: openldap
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: local-path  # Change to your storage class
+
+---
+# ConfigMap with initial LDAP structure
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openldap-init
+  namespace: openldap
+data:
+  init.ldif: |
+    # Base organizational units
+    dn: ou=internal,dc=dbsaas,dc=local
+    objectClass: organizationalUnit
+    ou: internal
+
+    dn: ou=external,dc=dbsaas,dc=local
+    objectClass: organizationalUnit
+    ou: external
+
+    dn: ou=users,ou=internal,dc=dbsaas,dc=local
+    objectClass: organizationalUnit
+    ou: users
+
+    dn: ou=users,ou=external,dc=dbsaas,dc=local
+    objectClass: organizationalUnit
+    ou: users
+
+    dn: ou=groups,dc=dbsaas,dc=local
+    objectClass: organizationalUnit
+    ou: groups
+
+    # Admin group (internal)
+    dn: cn=admins,ou=groups,dc=dbsaas,dc=local
+    objectClass: posixGroup
+    objectClass: top
+    cn: admins
+    gidNumber: 1001
+    description: Internal administrators
+
+    # Clients group (external)
+    dn: cn=clients,ou=groups,dc=dbsaas,dc=local
+    objectClass: posixGroup
+    objectClass: top
+    cn: clients
+    gidNumber: 2001
+    description: External database users
+
+    # Readonly service account for searches
+    dn: cn=readonly,dc=dbsaas,dc=local
+    objectClass: simpleSecurityObject
+    objectClass: organizationalRole
+    cn: readonly
+    userPassword: readonly123
+    description: Service account for LDAP searches
+
+---
+# OpenLDAP Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openldap
+  namespace: openldap
+  labels:
+    app: openldap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openldap
+  template:
+    metadata:
+      labels:
+        app: openldap
+    spec:
+      containers:
+      - name: openldap
+        image: osixia/openldap:1.5.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 389
+          name: ldap
+        - containerPort: 636
+          name: ldaps
+        env:
+        - name: LDAP_ORGANISATION
+          value: "DBaaS Platform"
+        - name: LDAP_DOMAIN
+          value: "dbsaas.local"
+        - name: LDAP_BASE_DN
+          value: "dc=dbsaas,dc=local"
+        - name: LDAP_ADMIN_PASSWORD
+          value: "admin123"
+        - name: LDAP_CONFIG_PASSWORD
+          value: "config123"
+        - name: LDAP_READONLY_USER
+          value: "true"
+        - name: LDAP_READONLY_USER_USERNAME
+          value: "readonly"
+        - name: LDAP_READONLY_USER_PASSWORD
+          value: "readonly123"
+        - name: LDAP_RFC2307BIS_SCHEMA
+          value: "false"
+        - name: LDAP_BACKEND
+          value: "mdb"
+        - name: LDAP_TLS
+          value: "false"
+        - name: LDAP_TLS_ENFORCE
+          value: "false"
+        - name: LDAP_REMOVE_CONFIG_AFTER_SETUP
+          value: "true"
+        - name: KEEP_EXISTING_CONFIG
+          value: "false"
+        volumeMounts:
+        - name: ldap-data
+          mountPath: /var/lib/ldap
+        - name: ldap-config
+          mountPath: /etc/ldap/slapd.d
+        - name: ldap-init
+          mountPath: /container/service/slapd/assets/config/bootstrap/ldif/custom
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          tcpSocket:
+            port: 389
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 389
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: ldap-data
+        persistentVolumeClaim:
+          claimName: openldap-data
+      - name: ldap-config
+        emptyDir: {}
+      - name: ldap-init
+        configMap:
+          name: openldap-init
+
+---
+# OpenLDAP Service - ClusterIP
+apiVersion: v1
+kind: Service
+metadata:
+  name: openldap
+  namespace: openldap
+  labels:
+    app: openldap
+spec:
+  type: ClusterIP
+  ports:
+  - port: 389
+    targetPort: 389
+    protocol: TCP
+    name: ldap
+  - port: 636
+    targetPort: 636
+    protocol: TCP
+    name: ldaps
+  selector:
+    app: openldap
+
+---
+# OpenLDAP Service - LoadBalancer (for external access/testing)
+apiVersion: v1
+kind: Service
+metadata:
+  name: openldap-lb
+  namespace: openldap
+  labels:
+    app: openldap
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 389
+    targetPort: 389
+    protocol: TCP
+    name: ldap
+  selector:
+    app: openldap

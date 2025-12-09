@@ -33,14 +33,22 @@ ldaptest/
 
 ## Prerequisites
 
+### For Local Development:
 - Go 1.21+
 - LDAP server running (default: `localhost:389`)
-- LDAP structure:
   - Base DN: `dc=dbsaas,dc=local`
   - Internal users: `ou=users,ou=internal,dc=dbsaas,dc=local`
   - External users: `ou=users,ou=external,dc=dbsaas,dc=local`
 
+### For Kubernetes Deployment:
+- Kubernetes cluster (K3s, K8s, etc.)
+- Docker for building images
+- kubectl configured
+- **Note:** OpenLDAP deployment is included in the manifests
+
 ## Installation
+
+### Option 1: Local Development
 
 1. Navigate to the backend directory:
 ```bash
@@ -52,12 +60,57 @@ cd ldaptest/backend
 go mod download
 ```
 
-3. Run the server:
+3. Make sure you have LDAP server running locally on port 389
+
+4. Run the server:
 ```bash
 go run .
 ```
 
 The server will start on `http://localhost:8090`
+
+### Option 2: Kubernetes Deployment (Complete Stack)
+
+Deploy both OpenLDAP and GraphQL service together:
+
+```bash
+# Build the GraphQL service image
+docker build -t ldaptest-graphql:latest ldaptest/
+
+# Load into K3s (if using K3s)
+docker save ldaptest-graphql:latest | sudo k3s ctr images import -
+
+# Deploy everything (OpenLDAP + GraphQL service)
+kubectl apply -f ldaptest/k8s-complete.yaml
+
+# Wait for OpenLDAP to be ready
+kubectl wait --for=condition=available --timeout=120s deployment/openldap -n openldap
+
+# Wait for GraphQL service to be ready
+kubectl wait --for=condition=available --timeout=120s deployment/ldaptest-graphql -n ldaptest
+
+# Access via port-forward
+kubectl port-forward -n ldaptest svc/ldaptest-graphql-service 8090:8090
+```
+
+### Option 3: Deploy Components Separately
+
+If you already have OpenLDAP running:
+
+```bash
+# Deploy only the GraphQL service
+kubectl apply -f ldaptest/k8s-deployment.yaml
+```
+
+If you need to deploy OpenLDAP separately:
+
+```bash
+# Deploy OpenLDAP first
+kubectl apply -f ldaptest/k8s-openldap.yaml
+
+# Then deploy GraphQL service
+kubectl apply -f ldaptest/k8s-deployment.yaml
+```
 
 ## Configuration
 
