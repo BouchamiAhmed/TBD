@@ -1,0 +1,41 @@
+# GraphQL Schema for LDAP Authentication
+
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  firstName: String!
+  lastName: String!
+  userType: String!
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+type Query {
+  # Get current user info (requires authentication)
+  me: User
+
+  # Get user by username (requires authentication)
+  user(username: String!): User
+
+  # Health check
+  health: String!
+}
+
+type Mutation {
+  # Login with LDAP credentials
+  login(username: String!, password: String!): AuthPayload!
+
+  # Register new LDAP user
+  register(
+    username: String!
+    password: String!
+    email: String!
+    firstName: String!
+    lastName: String!
+    userType: String!
+  ): AuthPayload!
+}

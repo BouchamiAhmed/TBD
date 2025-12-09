@@ -1,0 +1,124 @@
+---
+# Namespace for ldaptest
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ldaptest
+
+---
+# ConfigMap for LDAP configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ldaptest-config
+  namespace: ldaptest
+data:
+  LDAP_HOST: "openldap.openldap.svc.cluster.local"  # Adjust to your LDAP service
+  PORT: "8090"
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ldaptest-graphql
+  namespace: ldaptest
+  labels:
+    app: ldaptest-graphql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ldaptest-graphql
+  template:
+    metadata:
+      labels:
+        app: ldaptest-graphql
+    spec:
+      containers:
+      - name: ldaptest-graphql
+        image: ldaptest-graphql:latest
+        imagePullPolicy: Never  # Change to Always for registry-pulled images
+        ports:
+        - containerPort: 8090
+          name: graphql
+        envFrom:
+        - configMapRef:
+            name: ldaptest-config
+        env:
+        - name: JWT_SECRET
+          value: "your-secret-key-change-in-production"
+        livenessProbe:
+          httpGet:
+            path: /query
+            port: 8090
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /query
+            port: 8090
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+# Service - ClusterIP
+apiVersion: v1
+kind: Service
+metadata:
+  name: ldaptest-graphql-service
+  namespace: ldaptest
+  labels:
+    app: ldaptest-graphql
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8090
+    targetPort: 8090
+    protocol: TCP
+    name: graphql
+  selector:
+    app: ldaptest-graphql
+
+---
+# Service - LoadBalancer (for external access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: ldaptest-graphql-lb
+  namespace: ldaptest
+  labels:
+    app: ldaptest-graphql
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 8090
+    targetPort: 8090
+    protocol: TCP
+    name: graphql
+  selector:
+    app: ldaptest-graphql
+
+---
+# Traefik IngressRoute (if using Traefik)
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: ldaptest-graphql-ingress
+  namespace: ldaptest
+spec:
+  entryPoints:
+    - web
+  routes:
+  - match: Host(`graphql.dbsaas.local`) || PathPrefix(`/graphql`)
+    kind: Rule
+    services:
+    - name: ldaptest-graphql-service
+      port: 8090
